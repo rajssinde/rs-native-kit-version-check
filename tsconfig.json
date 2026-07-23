@@ -2,7 +2,8 @@
   "compilerOptions": {
     "rootDir": ".",
     "paths": {
-      "@rs-native-kit/version-check": ["./src/index"]
+      "@rs-native-kit/version-check": ["./src/index"],
+      "@rs-native-kit/version-check/ui": ["./src/ui"]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,

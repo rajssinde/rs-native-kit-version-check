@@ -48,4 +48,9 @@ android {
 
 dependencies {
   implementation "com.facebook.react:react-android"
+  // Backs the scheduleBackgroundCheck/cancelBackgroundCheck TurboModule methods
+  // (doc 01 §4.1 "scheduler" row, Android WorkManager) — an internal implementation
+  // detail of this library's own native module; consuming apps do not need to declare
+  // this themselves (it is bundled at runtime via normal AAR dependency resolution).
+  implementation "androidx.work:work-runtime-ktx:2.9.1"
 }

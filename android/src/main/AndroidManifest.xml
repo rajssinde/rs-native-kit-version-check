@@ -1,2 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Doc 01 §4.1/§10 background-scheduler headless JS bridge (Prompt 26). Merged
+         into the host app's manifest by Gradle's normal library-manifest merge. -->
+    <application>
+        <service
+            android:name=".VersionCheckHeadlessTaskService"
+            android:exported="false" />
+    </application>
 </manifest>

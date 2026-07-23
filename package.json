@@ -4,11 +4,17 @@
   "description": "for version update",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
       "rs-native-kit-version-check-source": "./src/index.tsx",
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
+    },
+    "./ui": {
+      "rs-native-kit-version-check-source": "./src/ui.tsx",
+      "types": "./lib/typescript/src/ui.d.ts",
+      "default": "./lib/module/ui.js"
     },
     "./package.json": "./package.json"
   },
@@ -131,6 +137,10 @@
   },
   "jest": {
     "preset": "@react-native/jest-preset",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/src/__tests__/mocks/"
+    ],
     "testEnvironmentOptions": {
       "customExportConditions": [
         "require",
