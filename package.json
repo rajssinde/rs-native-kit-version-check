@@ -1,6 +1,6 @@
 {
   "name": "@rs-native-kit/version-check",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "for version update",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
