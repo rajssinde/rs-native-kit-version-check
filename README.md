@@ -254,9 +254,3 @@ yarn example ios      # or `yarn example android`, `yarn example web`
 MIT © [Rajesh Shinde](https://github.com/rajssinde)
 
 ---
-
-<div align="center">
-
-Made with [create-react-native-library](https://github.com/callstack/react-native-builder-bob)
-
-</div>
