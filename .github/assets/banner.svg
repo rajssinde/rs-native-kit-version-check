@@ -1,0 +1,79 @@
+<svg width="780" height="300" viewBox="0 0 780 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="@rs-native-kit/version-check — force and soft-update orchestration for React Native">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0f1e"/>
+      <stop offset="50%" stop-color="#0e2038"/>
+      <stop offset="100%" stop-color="#0f2f3f"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7ee7ff"/>
+      <stop offset="100%" stop-color="#3178c6"/>
+    </linearGradient>
+    <linearGradient id="accentV" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7ee7ff"/>
+      <stop offset="100%" stop-color="#3178c6"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#61dafb" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#61dafb" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="1.4" cy="1.4" r="1.4" fill="#ffffff" fill-opacity="0.045"/>
+    </pattern>
+    <filter id="soft" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+  </defs>
+
+  <rect width="780" height="300" rx="22" fill="url(#bg)"/>
+  <rect width="780" height="300" rx="22" fill="url(#dots)"/>
+  <circle cx="150" cy="150" r="180" fill="url(#glow)" opacity="0.35"/>
+  <circle cx="700" cy="250" r="180" fill="url(#glow)" opacity="0.18"/>
+
+  <!-- ============ LOGO MARK ============ -->
+  <g transform="translate(64, 78)">
+    <rect x="-10" y="-10" width="144" height="144" rx="34" fill="#61dafb" opacity="0.25" filter="url(#soft)"/>
+    <rect x="0" y="0" width="124" height="124" rx="28" fill="#0d1a2b"/>
+    <rect x="0" y="0" width="124" height="124" rx="28" fill="none" stroke="url(#accent)" stroke-width="2.5"/>
+    <rect x="4" y="4" width="116" height="116" rx="24" fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1"/>
+
+    <!-- upward version chevrons -->
+    <path d="M30 78 L62 48 L94 78" stroke="url(#accentV)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M30 96 L62 66 L94 96" stroke="url(#accentV)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.45"/>
+
+    <!-- badge cut-out ring + check -->
+    <circle cx="112" cy="12" r="25" fill="#0d1a2b"/>
+    <circle cx="112" cy="12" r="19" fill="#22c55e"/>
+    <path d="M103 12.5 L109.5 19 L123 4" stroke="#0a0f1e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <!-- ============ WORDMARK ============ -->
+  <g transform="translate(232, 0)" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <rect x="0" y="42" width="150" height="26" rx="13" fill="#ffffff" fill-opacity="0.07" stroke="#ffffff" stroke-opacity="0.12"/>
+    <text x="13" y="59" font-size="13.5" font-weight="600" fill="#bcd4e6" letter-spacing="0.4">@rs-native-kit</text>
+
+    <text x="-2" y="130" font-size="52" font-weight="800" letter-spacing="-1.2" fill="#ffffff">version<tspan fill="url(#accent)">-check</tspan></text>
+
+    <text x="0" y="163" font-size="19" font-weight="500" fill="#9fb3c8">Force updates. Soft nudges. Zero runtime deps.</text>
+
+    <!-- chip row: dot-indicator style -->
+    <g transform="translate(0, 194)" font-size="14.5" font-weight="600">
+      <g>
+        <circle cx="9" cy="10" r="5" fill="#61dafb"/>
+        <text x="22" y="15" fill="#dbe7f1">iOS</text>
+      </g>
+      <g transform="translate(72, 0)">
+        <circle cx="9" cy="10" r="5" fill="#34d399"/>
+        <text x="22" y="15" fill="#dbe7f1">Android</text>
+      </g>
+      <g transform="translate(178, 0)">
+        <circle cx="9" cy="10" r="5" fill="#a78bfa"/>
+        <text x="22" y="15" fill="#dbe7f1">Web</text>
+      </g>
+      <g transform="translate(250, 0)">
+        <circle cx="9" cy="10" r="5" fill="none" stroke="#7d93a8" stroke-width="1.5"/>
+        <text x="22" y="15" fill="#8fa3b8">Zero deps</text>
+      </g>
+    </g>
+  </g>
+</svg>

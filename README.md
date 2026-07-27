@@ -1,19 +1,21 @@
 <div align="center">
 
-# 📦 @rs-native-kit/version-check
+<img src=".github/assets/banner.svg" alt="@rs-native-kit/version-check — force & soft-update orchestration for React Native" width="100%" />
 
-**Drop-in version-check & force/soft-update orchestration for React Native**
-
-Detect when your users are behind, decide what to do about it, and ship the UI to tell them — all from one config call.
-
+[![npm version](https://img.shields.io/npm/v/@rs-native-kit/version-check.svg?color=cb3837&logo=npm&logoColor=white)](https://www.npmjs.com/package/@rs-native-kit/version-check)
+[![npm downloads](https://img.shields.io/npm/dm/@rs-native-kit/version-check.svg?color=cb3837&logo=npm&logoColor=white)](https://www.npmjs.com/package/@rs-native-kit/version-check)
 [![CI](https://github.com/rajssinde/rs-native-kit-version-check/actions/workflows/ci.yml/badge.svg)](https://github.com/rajssinde/rs-native-kit-version-check/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](#)
 [![New Architecture](https://img.shields.io/badge/React%20Native-New%20Architecture-61DAFB?logo=react&logoColor=white)](#requirements)
-[![Platforms](https://img.shields.io/badge/platforms-iOS%20%7C%20Android%20%7C%20Web-lightgrey)](#requirements)
-[![Zero deps](https://img.shields.io/badge/runtime%20deps-zero-success)](#)
 
 </div>
+
+---
+
+### Contents
+
+[Why this exists](#why-this-exists) · [At a glance](#at-a-glance) · [Features](#features) · [Requirements](#requirements) · [Installation](#installation) · [Quick start](#quick-start) · [Configuration](#configuration-reference) · [Lifecycle](#lifecycle) · [Example app](#example-app) · [Contributing](#contributing)
 
 ---
 
@@ -52,22 +54,24 @@ Shipping an update means nothing if half your users are stuck on a version from 
 
 ## Requirements
 
-This library ships as a **TurboModule** with no legacy-bridge fallback, so the New Architecture must be enabled.
+> ⚠️ Ships as a **TurboModule** with no legacy-bridge fallback — the New Architecture (Fabric/TurboModules) must be enabled.
 
-| Requirement | Minimum | Tested against |
-|---|---|---|
-| React Native | **0.74+**, New Architecture (Fabric/TurboModules) enabled | 0.85.0 |
-| React | 18+ | 19.2.3 |
-| iOS | **15.1+** | Xcode 16.1+ |
-| Android | **API 24** (Android 7.0)+ | compileSdk 36, Kotlin 2.0.21, JDK 17 |
-| Node.js | 20+ | 24.13.0 (see `.nvmrc`) |
-| TypeScript | 5+ (optional, but the package ships full `.d.ts`) | 6.0.3 |
+|  | Requirement | Minimum | Tested against |
+|:---:|---|---|---|
+| ⚛️ | React Native | **0.74+** · New Architecture enabled | `0.85.0` |
+| ⚛️ | React | **18+** | `19.2.3` |
+| 🍎 | iOS | **15.1+** | Xcode `16.1+` |
+| 🤖 | Android | **API 24** (7.0)+ | compileSdk 36 · Kotlin 2.0.21 · JDK 17 |
+| 🟢 | Node.js | **20+** | `24.13.0` (see `.nvmrc`) |
+| 🔷 | TypeScript | 5+ · optional, full `.d.ts` shipped | `6.0.3` |
 
-| Platform | Status |
-|---|---|
-| iOS | ✅ Native TurboModule (`ios/VersionCheck.mm`, Ed25519 verification) |
-| Android | ✅ Native TurboModule (Kotlin, WorkManager-backed background scheduling) |
-| Web (`react-native-web`) | ✅ Same JS API, browser-native `fetch`/`localStorage` bridge |
+<br/>
+
+|  | Platform | Support |
+|:---:|---|---|
+| 🍎 | **iOS** | ✅ Native TurboModule — Ed25519 signature verification (`ios/VersionCheck.mm`) |
+| 🤖 | **Android** | ✅ Native TurboModule — Kotlin, WorkManager-backed background scheduling |
+| 🌐 | **Web** | ✅ Same JS API via `react-native-web` — browser `fetch` / `localStorage` bridge |
 
 ## Installation
 
@@ -226,12 +230,20 @@ On top of the options you hardcode at `configure()`, you can layer a **local bun
 
 ## Lifecycle
 
-```
-UNINITIALIZED → CONFIG_LOADING → IDLE ⇄ VERSION_CHECKING → DECIDING
-                                                              │
-                        ┌─────────────────┬───────────────────┼───────────────────┐
-                        ▼                 ▼                   ▼                   ▼
-              FORCE_UPDATE_DISPLAYED  SOFT_UPDATE_DISPLAYED  REJECTED_WAITING_REMINDER  IDLE
+```mermaid
+stateDiagram-v2
+    [*] --> UNINITIALIZED
+    UNINITIALIZED --> CONFIG_LOADING
+    CONFIG_LOADING --> IDLE
+    IDLE --> VERSION_CHECKING
+    VERSION_CHECKING --> IDLE
+    VERSION_CHECKING --> DECIDING
+    DECIDING --> FORCE_UPDATE_DISPLAYED
+    DECIDING --> SOFT_UPDATE_DISPLAYED
+    DECIDING --> REJECTED_WAITING_REMINDER
+    DECIDING --> IDLE: NO_ACTION
+    SOFT_UPDATE_DISPLAYED --> REJECTED_WAITING_REMINDER: Later
+    REJECTED_WAITING_REMINDER --> VERSION_CHECKING: reminder elapsed
 ```
 
 Read the current state any time with `manager.getCurrentState()`, or subscribe via `onStateChanged`.
@@ -252,5 +264,13 @@ yarn example ios      # or `yarn example android`, `yarn example web`
 ## License
 
 MIT © [Rajesh Shinde](https://github.com/rajssinde)
+
+---
+
+<div align="center">
+
+If this saved you a support ticket, consider starring the repo ⭐
+
+</div>
 
 ---
