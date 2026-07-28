@@ -1,7 +1,7 @@
 {
   "name": "@rs-native-kit/version-check",
   "version": "0.1.3",
-  "description": "for version update",
+  "description": "Force & soft-update prompts for React Native — compares your app's version against the App Store, Google Play, or a custom API and returns a typed action plan. Zero runtime deps, New Architecture (TurboModule), iOS/Android/Web.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
   "sideEffects": false,
@@ -50,8 +50,26 @@
   },
   "keywords": [
     "react-native",
+    "version-check",
+    "app-update",
+    "force-update",
+    "soft-update",
+    "update-checker",
+    "in-app-update",
+    "app-store",
+    "google-play",
+    "play-store",
+    "semver",
+    "turbomodule",
+    "new-architecture",
+    "react-native-web",
+    "update-prompt",
+    "staged-rollout",
+    "remote-config",
     "ios",
-    "android"
+    "android",
+    "web",
+    "typescript"
   ],
   "repository": {
     "type": "git",
