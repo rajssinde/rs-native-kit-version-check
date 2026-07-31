@@ -1,7 +1,7 @@
 {
   "name": "@rs-native-kit/version-check",
   "version": "0.1.4",
-  "description": "Force & soft-update prompts for React Native — compares your app's version against the App Store, Google Play, or a custom API and returns a typed action plan. Zero runtime deps, New Architecture (TurboModule), iOS/Android/Web.",
+  "description": "Force & soft-update prompts for React Native — compares your app's version against the App Store, Google Play, or a custom API and returns a typed action plan. New Architecture (Nitro Modules), iOS/Android/Web.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
   "sideEffects": false,
@@ -24,6 +24,8 @@
     "android",
     "ios",
     "cpp",
+    "nitrogen",
+    "nitro.json",
     "*.podspec",
     "react-native.config.js",
     "!ios/build",
@@ -40,7 +42,8 @@
   "scripts": {
     "example": "yarn workspace @rs-native-kit/version-check-example",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
-    "prepare": "bob build",
+    "codegen": "nitrogen",
+    "prepare": "yarn codegen && bob build",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "test": "jest",
@@ -60,7 +63,7 @@
     "google-play",
     "play-store",
     "semver",
-    "turbomodule",
+    "nitro-modules",
     "new-architecture",
     "react-native-web",
     "update-prompt",
@@ -103,10 +106,12 @@
     "eslint-plugin-prettier": "^5.5.6",
     "jest": "^29.7.0",
     "lefthook": "^2.1.9",
+    "nitrogen": "^0.36.4",
     "prettier": "^3.8.3",
     "react": "19.2.3",
     "react-native": "0.85.0",
     "react-native-builder-bob": "^0.41.0",
+    "react-native-nitro-modules": "^0.36.4",
     "react-native-web": "~0.21.2",
     "release-it": "^20.2.0",
     "turbo": "^2.9.16",
@@ -114,7 +119,8 @@
   },
   "peerDependencies": {
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "react-native-nitro-modules": "*"
   },
   "workspaces": [
     "example"
@@ -137,14 +143,6 @@
         }
       ]
     ]
-  },
-  "codegenConfig": {
-    "name": "VersionCheckSpec",
-    "type": "modules",
-    "jsSrcsDir": "src",
-    "android": {
-      "javaPackageName": "com.rsnativekit.versioncheck"
-    }
   },
   "prettier": {
     "quoteProps": "consistent",

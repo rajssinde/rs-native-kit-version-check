@@ -1,0 +1,25 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": ["versioncheck"],
+  "ios": {
+    "iosModuleName": "VersionCheck"
+  },
+  "android": {
+    "androidNamespace": ["versioncheck"],
+    "androidCxxLibName": "VersionCheck"
+  },
+  "autolinking": {
+    "VersionCheck": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridVersionCheck"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridVersionCheck"
+      }
+    }
+  },
+  "ignorePaths": ["**/node_modules"],
+  "gitAttributesGeneratedFlag": false
+}

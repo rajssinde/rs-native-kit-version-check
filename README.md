@@ -31,7 +31,7 @@ Shipping an update means nothing if half your users are stuck on a version from 
 
 | | |
 |---|---|
-| 📦 Runtime dependencies | **0** — nothing pulled in at install time |
+| 📦 Runtime dependencies | **1** — `react-native-nitro-modules` (the JSI binding layer) |
 | 🏬 Store providers | Apple App Store, Google Play, Custom API (Huawei/Amazon/Firebase planned) |
 | ⏱️ Default check cache | 6h TTL, persisted across app restarts |
 | 🔁 Default reminder cadence | Every 3 days after "Later" |

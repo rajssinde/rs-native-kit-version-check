@@ -2,7 +2,9 @@ buildscript {
   ext.VersionCheck = [
     kotlinVersion: "2.0.21",
     minSdkVersion: 24,
-    compileSdkVersion: 36
+    compileSdkVersion: 36,
+    targetSdkVersion: 36,
+    ndkVersion: "27.1.12297006"
   ]
 
   ext.getExtOrDefault = { prop ->
@@ -28,16 +30,66 @@ buildscript {
 
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
+// Adds nitrogen-generated Kotlin sources to this module's sourceSets (Nitro autolinking).
+apply from: '../nitrogen/generated/android/VersionCheck+autolinking.gradle'
 
 apply plugin: "com.facebook.react"
+
+def reactNativeArchitectures() {
+  def value = rootProject.getProperties().get("reactNativeArchitectures")
+  return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
+}
 
 android {
   namespace "com.rsnativekit.versioncheck"
 
+  ndkVersion getExtOrDefault("ndkVersion")
   compileSdkVersion getExtOrDefault("compileSdkVersion")
 
   defaultConfig {
     minSdkVersion getExtOrDefault("minSdkVersion")
+    targetSdkVersion getExtOrDefault("targetSdkVersion")
+
+    externalNativeBuild {
+      cmake {
+        cppFlags "-frtti -fexceptions -Wall -Wextra -fstack-protector-all"
+        arguments "-DANDROID_STL=c++_shared"
+        abiFilters (*reactNativeArchitectures())
+      }
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path "CMakeLists.txt"
+    }
+  }
+
+  packagingOptions {
+    excludes = [
+            "META-INF",
+            "META-INF/**",
+            "**/libc++_shared.so",
+            "**/libNitroModules.so",
+            "**/libfbjni.so",
+            "**/libjsi.so",
+            "**/libfolly_json.so",
+            "**/libfolly_runtime.so",
+            "**/libglog.so",
+            "**/libhermes.so",
+            "**/libhermes-executor-debug.so",
+            "**/libhermes_executor.so",
+            "**/libreactnative.so",
+            "**/libreactnativejni.so",
+            "**/libturbomodulejsijni.so",
+            "**/libreact_nativemodule_core.so",
+            "**/libjscexecutor.so"
+    ]
+  }
+
+  buildFeatures {
+    buildConfig true
+    prefab true
   }
 
   compileOptions {
@@ -48,6 +100,8 @@ android {
 
 dependencies {
   implementation "com.facebook.react:react-android"
+  // Add a dependency on NitroModules (Hybrid Object registry, JSI core).
+  implementation project(":react-native-nitro-modules")
   // Backs the scheduleBackgroundCheck/cancelBackgroundCheck TurboModule methods
   // (doc 01 §4.1 "scheduler" row, Android WorkManager) — an internal implementation
   // detail of this library's own native module; consuming apps do not need to declare
