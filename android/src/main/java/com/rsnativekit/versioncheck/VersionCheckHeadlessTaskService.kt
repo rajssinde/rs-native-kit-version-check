@@ -14,8 +14,8 @@ import com.facebook.react.jstasks.HeadlessJsTaskConfig
  * react-native-background-fetch and similar libraries require).
  */
 class VersionCheckHeadlessTaskService : HeadlessJsTaskService() {
-  override fun getTaskConfig(intent: Intent): HeadlessJsTaskConfig? {
-    val extras = intent.extras
+  override fun getTaskConfig(intent: Intent?): HeadlessJsTaskConfig? {
+    val extras = intent?.extras
     return HeadlessJsTaskConfig(
       TASK_NAME,
       if (extras != null) Arguments.fromBundle(extras) else Arguments.createMap(),
