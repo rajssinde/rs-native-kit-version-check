@@ -49,12 +49,21 @@ Shipping an update means nothing if half your users are stuck on a version from 
 - ⚛️ **React hooks + prebuilt UI** — `useVersionManager`, `<ForceUpdateScreen />`, `<SoftUpdateDialog />`, `<OptionalUpdateBanner />` — or go headless and build your own.
 - 📡 **Event-driven** — subscribe to `stateChanged`, `updateDetected`, `userAction`, and `error` instead of polling.
 - 🌐 **Web-ready** — the same JS API runs under `react-native-web`; no separate SDK.
-- 🪶 **Zero runtime dependencies** — the entire JS surface is hand-written, nothing pulled in at install time.
+- 🪶 **One runtime dependency** — `react-native-nitro-modules` (the JSI binding layer); the entire JS surface above it is hand-written, nothing else pulled in at install time.
 - 🧪 **Fully unit-tested domain core** — SemVer engine, policy engine, lifecycle state machine, and config pipeline all run against mocks, no native layer required.
+
+## Screenshots
+
+The three prebuilt components from `@rs-native-kit/version-check/ui`, run on-device (iOS simulator):
+
+| `<ForceUpdateScreen />` | `<SoftUpdateDialog />` | `<OptionalUpdateBanner />` |
+|---|---|---|
+| ![Force update screen](.github/assets/force-update-screen.png) | ![Soft update dialog](.github/assets/soft-update-dialog.png) | ![Optional update banner](.github/assets/optional-update-banner.png) |
+| Full-screen, non-dismissible lockout | Dismissible bottom-sheet dialog | Low-intrusion floating banner |
 
 ## Requirements
 
-> ⚠️ Ships as a **TurboModule** with no legacy-bridge fallback — the New Architecture (Fabric/TurboModules) must be enabled.
+> ⚠️ Ships as a **Nitro Module** (`HybridObject`) with no legacy-bridge fallback — the New Architecture (Fabric/TurboModules/JSI) must be enabled.
 
 |  | Requirement | Minimum | Tested against |
 |:---:|---|---|---|
@@ -69,8 +78,8 @@ Shipping an update means nothing if half your users are stuck on a version from 
 
 |  | Platform | Support |
 |:---:|---|---|
-| 🍎 | **iOS** | ✅ Native TurboModule — Ed25519 signature verification (`ios/VersionCheck.mm`) |
-| 🤖 | **Android** | ✅ Native TurboModule — Kotlin, WorkManager-backed background scheduling |
+| 🍎 | **iOS** | ✅ Native Nitro Module — Ed25519 signature verification (`ios/HybridVersionCheck.swift`) |
+| 🤖 | **Android** | ✅ Native Nitro Module — Kotlin, WorkManager-backed background scheduling |
 | 🌐 | **Web** | ✅ Same JS API via `react-native-web` — browser `fetch` / `localStorage` bridge |
 
 ## Installation
@@ -87,7 +96,7 @@ yarn add @rs-native-kit/version-check
 cd ios && pod install
 ```
 
-**Android** — no extra steps; the TurboModule autolinks via `react-native.config.js`.
+**Android** — no extra steps; the Nitro Module autolinks via `react-native.config.js`.
 
 ## Quick start
 
