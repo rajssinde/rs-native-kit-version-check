@@ -239,23 +239,11 @@ On top of the options you hardcode at `configure()`, you can layer a **local bun
 
 ## Lifecycle
 
-```mermaid
-stateDiagram-v2
-    [*] --> UNINITIALIZED
-    UNINITIALIZED --> CONFIG_LOADING
-    CONFIG_LOADING --> IDLE
-    IDLE --> VERSION_CHECKING
-    VERSION_CHECKING --> IDLE
-    VERSION_CHECKING --> DECIDING
-    DECIDING --> FORCE_UPDATE_DISPLAYED
-    DECIDING --> SOFT_UPDATE_DISPLAYED
-    DECIDING --> REJECTED_WAITING_REMINDER
-    DECIDING --> IDLE: NO_ACTION
-    SOFT_UPDATE_DISPLAYED --> REJECTED_WAITING_REMINDER: Later
-    REJECTED_WAITING_REMINDER --> VERSION_CHECKING: reminder elapsed
-```
+<div align="center">
+<img src=".github/assets/lifecycle-diagram.png" alt="VersionManagerCore lifecycle: UNINITIALIZED to CONFIG_LOADING to IDLE, then VERSION_CHECKING to DECIDING, branching to FORCE_UPDATE_DISPLAYED, SOFT_UPDATE_DISPLAYED, or back to IDLE on NO_ACTION; SOFT_UPDATE_DISPLAYED's Later action and DECIDING both lead to REJECTED_WAITING_REMINDER, which returns to VERSION_CHECKING once the reminder elapses" width="560" />
+</div>
 
-Read the current state any time with `manager.getCurrentState()`, or subscribe via `onStateChanged`.
+Read the current state any time with `manager.getCurrentState()`, or subscribe via `onStateChanged`. Source: [`src/domain/statemachine/LifecycleStateMachine.ts`](src/domain/statemachine/LifecycleStateMachine.ts).
 
 ## Example app
 
