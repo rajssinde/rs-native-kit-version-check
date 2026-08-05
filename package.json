@@ -16,6 +16,11 @@
       "types": "./lib/typescript/src/ui.d.ts",
       "default": "./lib/module/ui.js"
     },
+    "./background": {
+      "rs-native-kit-version-check-source": "./src/backgroundTask.ts",
+      "types": "./lib/typescript/src/backgroundTask.d.ts",
+      "default": "./lib/module/backgroundTask.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

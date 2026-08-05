@@ -41,6 +41,11 @@ export class MockPlatformBridge implements IPlatformBridge {
   readonly scheduler: IBackgroundScheduler;
   readonly lifecycle: IAppLifecycleObserver;
 
+  /** Test spies for scheduler wiring (doc 04 §2) — recorded, not part of IBackgroundScheduler itself. */
+  readonly scheduledTasks: BackgroundTaskDescriptor[] = [];
+  readonly canceledTaskIds: string[] = [];
+  private lastOnFire: (() => void) | undefined;
+
   private httpHandler: HttpRequestHandler;
 
   constructor(options: MockPlatformBridgeOptions = {}) {
@@ -108,8 +113,13 @@ export class MockPlatformBridge implements IPlatformBridge {
     };
 
     this.scheduler = {
-      async schedule(_task: BackgroundTaskDescriptor) {},
-      async cancel(_taskId: string) {},
+      schedule: async (task: BackgroundTaskDescriptor, onFire?: () => void) => {
+        this.scheduledTasks.push(task);
+        this.lastOnFire = onFire;
+      },
+      cancel: async (taskId: string) => {
+        this.canceledTaskIds.push(taskId);
+      },
     };
 
     this.lifecycle = {
@@ -124,5 +134,10 @@ export class MockPlatformBridge implements IPlatformBridge {
 
   setHttpHandler(handler: HttpRequestHandler): void {
     this.httpHandler = handler;
+  }
+
+  /** Fires the onFire callback passed to the most recent scheduler.schedule() call. */
+  fireScheduledTask(): void {
+    this.lastOnFire?.();
   }
 }

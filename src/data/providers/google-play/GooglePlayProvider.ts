@@ -19,20 +19,27 @@ import type { IStoreProvider } from '../../../domain/ports/IStoreProvider';
  *
  * packageName is optional — on Android the app's own bundle id *is* its package name,
  * so when it's not supplied explicitly this falls back to request.bundleId.
+ *
+ * region (doc 04 §3) maps to Play's `gl=` storefront-region query param — distinct from
+ * `hl=` (listing language, currently hardcoded to `en`). Optional: when omitted, `gl` is
+ * left off the URL entirely and Play resolves region from the request's own signals.
  */
 export class GooglePlayProvider implements IStoreProvider {
   readonly id: StoreProviderId = 'google-play';
 
   constructor(
     private readonly http: IHttpClient,
-    private readonly packageName?: string
+    private readonly packageName?: string,
+    private readonly region?: string
   ) {}
 
   async fetchLatestVersionInfo(
     request: StoreLookupRequest
   ): Promise<StoreLookupResult> {
     const packageName = this.packageName ?? request.bundleId;
-    const storeUrl = `https://play.google.com/store/apps/details?id=${encodeURIComponent(packageName)}&hl=en`;
+    const region = request.region ?? this.region;
+    const regionParam = region ? `&gl=${encodeURIComponent(region)}` : '';
+    const storeUrl = `https://play.google.com/store/apps/details?id=${encodeURIComponent(packageName)}&hl=en${regionParam}`;
     const response = await this.http.request({
       url: storeUrl,
       method: 'GET',
@@ -62,7 +69,7 @@ export class GooglePlayProvider implements IStoreProvider {
 
     return {
       latestVersion: version,
-      storeUrl: `https://play.google.com/store/apps/details?id=${packageName}`,
+      storeUrl: `https://play.google.com/store/apps/details?id=${packageName}${regionParam}`,
       releaseNotes: null,
       minimumOsVersion: null,
     };

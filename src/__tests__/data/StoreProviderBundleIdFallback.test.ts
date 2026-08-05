@@ -112,3 +112,71 @@ describe('GooglePlayProvider — bundle id fallback', () => {
     expect(result.storeUrl).toContain('com.example.app');
   });
 });
+
+describe('GooglePlayProvider — region (doc 04 §3)', () => {
+  it('appends gl=<region> to both the fetch URL and the returned storeUrl when configured', async () => {
+    let capturedUrl = '';
+    const http = httpStub((req) => {
+      capturedUrl = req.url;
+      return {
+        status: 200,
+        headers: {},
+        body: '[[["2.0.0"]]]',
+      };
+    });
+    const provider = new GooglePlayProvider(http, 'com.configured.app', 'jp');
+
+    const result = await provider.fetchLatestVersionInfo({
+      bundleId: 'com.example.app',
+      region: null,
+      timeoutMs: 1000,
+    });
+
+    expect(capturedUrl).toContain('gl=jp');
+    expect(result.storeUrl).toContain('gl=jp');
+  });
+
+  it('omits gl entirely when no region is configured', async () => {
+    let capturedUrl = '';
+    const http = httpStub((req) => {
+      capturedUrl = req.url;
+      return {
+        status: 200,
+        headers: {},
+        body: '[[["2.0.0"]]]',
+      };
+    });
+    const provider = new GooglePlayProvider(http, 'com.configured.app');
+
+    const result = await provider.fetchLatestVersionInfo({
+      bundleId: 'com.example.app',
+      region: null,
+      timeoutMs: 1000,
+    });
+
+    expect(capturedUrl).not.toContain('gl=');
+    expect(result.storeUrl).not.toContain('gl=');
+  });
+
+  it('a per-request region overrides the constructor default', async () => {
+    let capturedUrl = '';
+    const http = httpStub((req) => {
+      capturedUrl = req.url;
+      return {
+        status: 200,
+        headers: {},
+        body: '[[["2.0.0"]]]',
+      };
+    });
+    const provider = new GooglePlayProvider(http, 'com.configured.app', 'jp');
+
+    await provider.fetchLatestVersionInfo({
+      bundleId: 'com.example.app',
+      region: 'de',
+      timeoutMs: 1000,
+    });
+
+    expect(capturedUrl).toContain('gl=de');
+    expect(capturedUrl).not.toContain('gl=jp');
+  });
+});

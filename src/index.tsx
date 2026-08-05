@@ -26,6 +26,7 @@ export type {
   ResetIgnoredVersionsOptions,
 } from './domain/models/PublicApiOptions';
 export type {
+  BackgroundCheckOptions,
   CacheOptions,
   FallbackOptions,
   ILogSink,

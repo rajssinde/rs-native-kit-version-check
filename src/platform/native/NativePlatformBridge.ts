@@ -104,18 +104,21 @@ class RnDeviceInfoProvider implements IDeviceInfoProvider {
 }
 
 /**
- * True OS-scheduled background execution (BGTaskScheduler/WorkManager, Prompt 26) is
- * not implemented in this pass. schedule()/cancel() log a warning rather than silently
- * pretending to work — see the equivalent, identically-scoped note on WebBackgroundScheduler.
+ * Delegates to real OS-scheduled background execution (WorkManager on Android,
+ * BGTaskScheduler on iOS — doc 04 §2). `onFire` is accepted for IBackgroundScheduler
+ * signature compatibility but intentionally unused: native re-entry happens in a fresh
+ * JS context (Android's headless JS task via registerVersionCheckHeadlessTask(), iOS's
+ * host-app-registered BGTaskScheduler launch handler), never as an in-process callback.
  */
 class RnBackgroundScheduler implements IBackgroundScheduler {
   async schedule(task: BackgroundTaskDescriptor): Promise<void> {
-    console.warn(
-      `[VersionManager] Background scheduling ("${task.taskId}") is not implemented on ${Platform.OS} yet (Prompt 26).`
+    await NativeVersionCheck().scheduleBackgroundCheck(
+      task.taskId,
+      task.minIntervalMs
     );
   }
-  async cancel(_taskId: string): Promise<void> {
-    // no-op — nothing was ever scheduled, see schedule() above.
+  async cancel(taskId: string): Promise<void> {
+    await NativeVersionCheck().cancelBackgroundCheck(taskId);
   }
 }
 

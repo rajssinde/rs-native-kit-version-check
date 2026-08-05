@@ -43,6 +43,13 @@ export function resolveConfigSync(
       },
     },
     stores: defaults.stores,
+    backgroundCheck: {
+      enabled: defaults.backgroundCheck?.enabled ?? false,
+      minIntervalMs:
+        defaults.backgroundCheck?.minIntervalMs ??
+        defaults.cache?.ttlMs ??
+        21_600_000,
+    },
     policy: {
       forceUpdateBelow: defaults.policy?.forceUpdateBelow ?? null,
       reminderIntervalMs: defaults.policy?.reminderIntervalMs ?? 259_200_000,

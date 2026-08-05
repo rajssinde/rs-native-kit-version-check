@@ -159,18 +159,15 @@ class HybridVersionCheck : HybridVersionCheckSpec() {
     return diff == 0
   }
 
-  // --- Background scheduling (doc 01 §4.1 "scheduler" row) ---
+  // --- Background scheduling (doc 01 §4.1 "scheduler" row, doc 04 §2) ---
   //
   // WorkManager PeriodicWorkRequest, minimum periodic interval is 15 minutes (an
   // OS-enforced floor on Android, not a choice of this library); requests below that
   // are rounded up. VersionCheckWorker wakes VersionCheckHeadlessTaskService, which
   // runs the "VersionCheckBackgroundTask" headless JS task the host app must register
-  // (see registerVersionCheckHeadlessTask() in the JS public API).
-  //
-  // Not part of `HybridVersionCheckSpec` — see src/specs/VersionCheck.nitro.ts for why
-  // these aren't JS-reachable yet. Kept here so the native capability isn't lost.
+  // via registerVersionCheckHeadlessTask() (exported from '@rs-native-kit/version-check/background').
 
-  fun scheduleBackgroundCheck(taskId: String, minIntervalMs: Double): Promise<Unit> = Promise.async {
+  override fun scheduleBackgroundCheck(taskId: String, minIntervalMs: Double): Promise<Unit> = Promise.async {
     val intervalMinutes = maxOf(15L, (minIntervalMs / 60_000.0).toLong())
     val request = PeriodicWorkRequestBuilder<VersionCheckWorker>(intervalMinutes, TimeUnit.MINUTES)
       .addTag(taskId)
@@ -179,7 +176,7 @@ class HybridVersionCheck : HybridVersionCheckSpec() {
       .enqueueUniquePeriodicWork(taskId, ExistingPeriodicWorkPolicy.UPDATE, request)
   }
 
-  fun cancelBackgroundCheck(taskId: String): Promise<Unit> = Promise.async {
+  override fun cancelBackgroundCheck(taskId: String): Promise<Unit> = Promise.async {
     WorkManager.getInstance(context).cancelUniqueWork(taskId)
   }
 

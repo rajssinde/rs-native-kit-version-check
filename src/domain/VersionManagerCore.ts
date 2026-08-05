@@ -42,6 +42,15 @@ import {
 import type { ILifecycleStateMachine } from './statemachine/LifecycleStateMachine';
 import type { VersionManagerOptions } from './models/VersionManagerOptions';
 
+/**
+ * WorkManager unique-work name / iOS scheduleBackgroundCheck taskId param (doc 04 §2).
+ * Unrelated to Android's headless-JS-task name ("VersionCheckBackgroundTask", declared
+ * natively in VersionCheckHeadlessTaskService.TASK_NAME and matched by
+ * registerVersionCheckHeadlessTask() in src/backgroundTask.ts) — this id only identifies
+ * the scheduled work request itself.
+ */
+const BACKGROUND_CHECK_TASK_ID = 'com.rsnativekit.versioncheck.backgroundCheck';
+
 export interface VersionManagerCoreDeps {
   /** Tier-4-only synchronous resolution (doc 02 §1.3 fail-fast) — used to bootstrap
    * before configProvider's full async pipeline (doc 03) resolves, and as the
@@ -144,7 +153,40 @@ export class VersionManagerCore implements IVersionManagerCore {
     } catch (error) {
       this.publishError(toVersionManagerException(error), 'config');
     }
+
+    // backgroundCheck.* is tier-4-only (never touched by remote/local/env overlays,
+    // see ConfigResolutionPipeline's mergeConfig), so it's safe to apply exactly once
+    // here rather than re-applying on every hot-update notification.
+    try {
+      await this.applyBackgroundCheckConfig();
+    } catch (error) {
+      this.publishError(toVersionManagerException(error), 'config');
+    }
+
     this.tryTransition(LifecycleState.IDLE);
+  }
+
+  /**
+   * Doc 04 §2 — starts/stops the native OS-scheduled periodic check
+   * (WorkManager/BGTaskScheduler via IPlatformBridge.scheduler) based on
+   * VersionManagerOptions.backgroundCheck. `onFire` only has an effect on platforms
+   * where a scheduled tick can re-enter this same running instance (Web); native
+   * re-entry happens through a separate JS context (Android's headless task via
+   * registerVersionCheckHeadlessTask(), iOS's host-registered BGTaskScheduler launch
+   * handler) and ignores it.
+   */
+  private async applyBackgroundCheckConfig(): Promise<void> {
+    const { enabled, minIntervalMs } = this.currentConfig.backgroundCheck;
+    if (!enabled) {
+      await this.deps.platformBridge.scheduler.cancel(BACKGROUND_CHECK_TASK_ID);
+      return;
+    }
+    await this.deps.platformBridge.scheduler.schedule(
+      { taskId: BACKGROUND_CHECK_TASK_ID, minIntervalMs },
+      () => {
+        void this.checkForUpdates({ bypassCache: false });
+      }
+    );
   }
 
   ready(): Promise<void> {

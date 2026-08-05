@@ -51,8 +51,15 @@ export interface BackgroundTaskDescriptor {
   readonly minIntervalMs: number;
 }
 
+/**
+ * `onFire` (doc 04 §2) only ever runs on platforms where a scheduled task can re-enter
+ * *this same* JS runtime instance (Web: a foreground setInterval poll). Native
+ * (WorkManager/BGTaskScheduler) implementations accept and ignore it — their re-entry
+ * point is a fresh JS context via a headless task / launch handler, never an in-process
+ * callback, so there is nothing to invoke here.
+ */
 export interface IBackgroundScheduler {
-  schedule(task: BackgroundTaskDescriptor): Promise<void>;
+  schedule(task: BackgroundTaskDescriptor, onFire?: () => void): Promise<void>;
   cancel(taskId: string): Promise<void>;
 }
 

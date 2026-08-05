@@ -284,24 +284,21 @@ class WebDeviceInfoProvider implements IDeviceInfoProvider {
  */
 class WebBackgroundScheduler implements IBackgroundScheduler {
   private readonly timers = new Map<string, ReturnType<typeof setInterval>>();
-  private readonly callbacks = new Map<string, () => void>();
 
-  async schedule(task: BackgroundTaskDescriptor): Promise<void> {
+  async schedule(
+    task: BackgroundTaskDescriptor,
+    onFire?: () => void
+  ): Promise<void> {
     this.cancelInternal(task.taskId);
     const timer = setInterval(() => {
       if (webGlobal.document.visibilityState !== 'visible') return;
-      this.callbacks.get(task.taskId)?.();
+      onFire?.();
     }, task.minIntervalMs);
     this.timers.set(task.taskId, timer);
   }
 
   async cancel(taskId: string): Promise<void> {
     this.cancelInternal(taskId);
-  }
-
-  /** Registers the function a scheduled task actually invokes when it fires (wired by src/di/container.ts, not part of IBackgroundScheduler's public port shape). */
-  setCallback(taskId: string, cb: () => void): void {
-    this.callbacks.set(taskId, cb);
   }
 
   private cancelInternal(taskId: string): void {

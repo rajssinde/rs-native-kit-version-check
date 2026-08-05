@@ -390,6 +390,10 @@ function mergeConfig(
       },
     },
     stores: firstDefined(tier2?.stores, tier3?.stores) ?? tier4.stores,
+    // backgroundCheck.* is tier-4-only, same as security.* — no remote/local config
+    // document field for it (doc 04 §2 is a local/native scheduling concern, not a
+    // server-driven policy).
+    backgroundCheck: tier4.backgroundCheck,
     policy: {
       forceUpdateBelow:
         firstDefined(

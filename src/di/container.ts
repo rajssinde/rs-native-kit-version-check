@@ -111,7 +111,11 @@ function buildProviders(
   }
   if (bridge.platform === 'android' && config.stores.android) {
     providers.push(
-      new GooglePlayProvider(bridge.http, config.stores.android.packageName)
+      new GooglePlayProvider(
+        bridge.http,
+        config.stores.android.packageName,
+        config.stores.android.region
+      )
     );
   }
   if (config.stores.custom) {

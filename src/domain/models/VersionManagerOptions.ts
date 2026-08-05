@@ -53,11 +53,25 @@ export interface StoreLinksOptions {
   /**
    * packageName is optional — when omitted, the Google Play lookup falls back to the
    * running app's bundle id (which *is* the Android package name) at check time.
+   * region is optional — when omitted, the listing URL carries no `gl=` param and Play
+   * resolves storefront region from the request's own signals (e.g. IP), same as today.
    */
-  android?: { packageName?: string };
+  android?: { packageName?: string; region?: string };
   huawei?: { appId: string };
   amazon?: { asin: string };
   custom?: { url: string; headers?: Record<string, string> };
+}
+
+/**
+ * Doc 04 §2 — OS-scheduled periodic background checks (WorkManager/BGTaskScheduler).
+ * minIntervalMs reuses the same "how often do we bother the network" question
+ * CacheOptions.ttlMs already answers, so it defaults to cache.ttlMs rather than
+ * introducing a second, separately-tuned interval. No effect on Web (no true background
+ * execution there; see WebBackgroundScheduler's foreground-visibility fallback).
+ */
+export interface BackgroundCheckOptions {
+  enabled?: boolean;
+  minIntervalMs?: number;
 }
 
 export interface PolicyOptions {
@@ -98,6 +112,7 @@ export interface VersionManagerOptions {
   logging?: LoggingOptions;
   cache?: CacheOptions;
   fallback?: FallbackOptions;
+  backgroundCheck?: BackgroundCheckOptions;
   stores: StoreLinksOptions;
   policy?: PolicyOptions;
   /** DI override, advanced/testing use only (Prompt 2 §1.1). */
@@ -135,6 +150,10 @@ export interface ResolvedVersionManagerConfig {
     };
   };
   readonly stores: StoreLinksOptions;
+  readonly backgroundCheck: {
+    readonly enabled: boolean;
+    readonly minIntervalMs: number;
+  };
   readonly policy: {
     readonly forceUpdateBelow: string | null;
     readonly reminderIntervalMs: number;

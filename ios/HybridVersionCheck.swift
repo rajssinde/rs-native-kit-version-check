@@ -185,15 +185,17 @@ class HybridVersionCheck: HybridVersionCheckSpec {
     }
   }
 
-  // MARK: - Background scheduling (doc 01 §4.1 "scheduler" row)
+  // MARK: - Background scheduling (doc 01 §4.1 "scheduler" row, doc 04 §2)
 
   // BGTaskScheduler requires the host app to declare the task identifier in Info.plist
   // (`BGTaskSchedulerPermittedIdentifiers`) and enable the "Background Modes > Background
-  // processing" capability — standard BGTaskScheduler integration any RN library using it
-  // requires (this library cannot inject those into a consumer's Info.plist itself).
-  //
-  // Not part of `HybridVersionCheckSpec` — see src/specs/VersionCheck.nitro.ts for why
-  // these aren't JS-reachable yet. Kept here so the native capability isn't lost.
+  // processing" capability, plus register a launch handler for
+  // kVersionCheckBGTaskIdentifier (typically in AppDelegate via
+  // `BGTaskScheduler.shared.register(forTaskWithIdentifier:using:launchHandler:)`) — none
+  // of which this library can inject into a consumer's app itself. Unlike Android's
+  // WorkManager, BGTaskScheduler has no headless-JS-task equivalent driven from this
+  // package; the host app's launch handler is native code that boots the RN bridge and
+  // calls checkForUpdates() itself.
   func scheduleBackgroundCheck(taskId: String, minIntervalMs: Double) throws -> Promise<Void> {
     return Promise.async {
       let request = BGAppRefreshTaskRequest(identifier: kVersionCheckBGTaskIdentifier)

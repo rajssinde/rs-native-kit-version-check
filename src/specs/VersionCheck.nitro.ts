@@ -10,11 +10,11 @@ import type { HybridObject } from 'react-native-nitro-modules';
  * key-value pairs via UserDefaults/Keychain or SharedPreferences/Keystore — is exactly
  * what's declared here.
  *
- * `scheduleBackgroundCheck`/`cancelBackgroundCheck` are implemented natively (WorkManager
- * on Android, BGTaskScheduler on iOS — see the Hybrid* implementations) but intentionally
- * aren't part of this spec, matching the pre-existing TurboModule Spec this replaces:
- * `RnBackgroundScheduler` (src/platform/native/NativePlatformBridge.ts) is still a JS-side
- * no-op pending full background-check wiring (Prompt 26).
+ * `scheduleBackgroundCheck`/`cancelBackgroundCheck` (doc 04 §2) wrap WorkManager on
+ * Android and BGTaskScheduler on iOS — see the Hybrid* implementations. `taskId` is used
+ * as the WorkManager unique-work name/tag on Android; iOS's BGTaskScheduler API only
+ * supports one registered identifier per task (declared in Info.plist), so `taskId` is
+ * accepted for signature symmetry but not otherwise used there.
  */
 export interface VersionCheck extends HybridObject<{
   ios: 'swift';
@@ -52,4 +52,8 @@ export interface VersionCheck extends HybridObject<{
     messageBase64: string,
     macBase64: string
   ): Promise<boolean>;
+
+  /** Doc 04 §2 — see the module-level doc comment above for `taskId` semantics per platform. */
+  scheduleBackgroundCheck(taskId: string, minIntervalMs: number): Promise<void>;
+  cancelBackgroundCheck(taskId: string): Promise<void>;
 }

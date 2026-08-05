@@ -5,6 +5,7 @@ import {
 } from './domain/errors/VersionManagerException';
 import type { IVersionManagerCore } from './domain/IVersionManagerCore';
 import type {
+  BackgroundCheckOptions,
   CacheOptions,
   FallbackOptions,
   LoggingOptions,
@@ -101,6 +102,11 @@ export class VersionManagerBuilder {
 
   withFallback(options: FallbackOptions): this {
     this.options = { ...this.options, fallback: options };
+    return this;
+  }
+
+  withBackgroundCheck(options: BackgroundCheckOptions): this {
+    this.options = { ...this.options, backgroundCheck: options };
     return this;
   }
 
