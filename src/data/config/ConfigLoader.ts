@@ -54,6 +54,8 @@ export function resolveConfigSync(
       forceUpdateBelow: defaults.policy?.forceUpdateBelow ?? null,
       reminderIntervalMs: defaults.policy?.reminderIntervalMs ?? 259_200_000,
       rolloutPercentage: defaults.policy?.rolloutPercentage ?? 100,
+      channel: defaults.policy?.channel ?? null,
+      rules: defaults.policy?.rules ?? [],
     },
     strictReadiness: defaults.strictReadiness ?? false,
     remoteConfigUrl: defaults.remoteConfigUrl ?? null,

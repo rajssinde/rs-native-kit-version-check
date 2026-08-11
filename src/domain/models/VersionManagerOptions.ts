@@ -57,9 +57,50 @@ export interface StoreLinksOptions {
    * resolves storefront region from the request's own signals (e.g. IP), same as today.
    */
   android?: { packageName?: string; region?: string };
-  huawei?: { appId: string };
+  /**
+   * Huawei AppGallery has no unauthenticated lookup API — the public listing page is a
+   * client-rendered SPA with no version data in the raw HTTP response, so a Google-Play-
+   * style scrape isn't viable. Instead this calls Huawei's AGC "App Info Query" Open API,
+   * authenticated with a bearer token the *consumer's own backend* obtains via Huawei's
+   * OAuth client_id/secret flow — this library never holds Huawei OAuth credentials, the
+   * same trust boundary as pointing `custom` at your own endpoint. Provide either a
+   * pre-fetched `accessToken` or a `getAccessToken` callback (preferred for tokens that
+   * expire); without one of the two, the Huawei provider is not registered at all.
+   * These three fields are configure()-time-only — a function can't cross a signed
+   * remote-config JSON document, and a bearer token should never ship inside one either,
+   * so they are intentionally not part of the remote ConfigDocument schema.
+   */
+  huawei?: {
+    appId: string;
+    accessToken?: string;
+    getAccessToken?: () => string | Promise<string>;
+    clientId?: string;
+  };
+  /**
+   * Amazon Appstore has no official lookup API and its public listing page does not
+   * reliably expose a machine-parseable version field (weaker signal than Google Play's
+   * embedded JSON) — AmazonAppstoreProvider is a best-effort HTML scrape; consumers
+   * needing reliability should prefer `custom` pointed at their own endpoint instead.
+   */
   amazon?: { asin: string };
   custom?: { url: string; headers?: Record<string, string> };
+  /**
+   * Fetches `parameterKey` (default `'latest_version'`) from a Firebase Remote Config
+   * project via plain REST — the same calls the native Firebase SDK makes internally
+   * (Installations API for an instance token, then Remote Config's `:fetch` endpoint),
+   * done over the existing IHttpClient port with no Firebase SDK dependency. This is a
+   * reverse-engineered/unofficial contract, not a documented public API — treat it with
+   * the same "may change without notice" caution as the Google Play scrape.
+   */
+  firebaseRemoteConfig?: {
+    apiKey: string;
+    projectId: string;
+    appId: string;
+    parameterKey?: string;
+    storeUrlParameterKey?: string;
+    releaseNotesParameterKey?: string;
+    minimumOsVersionParameterKey?: string;
+  };
 }
 
 /**
@@ -74,10 +115,31 @@ export interface BackgroundCheckOptions {
   minIntervalMs?: number;
 }
 
+/**
+ * Doc 06 §3 — first-match-wins targeting, layered over the flat forceUpdateBelow/
+ * rolloutPercentage fields. Every clause a rule specifies must match for that rule to
+ * apply; an omitted clause matches anything. configure()-time only (tier 4) for now —
+ * not yet part of the signed remote-config document schema (doc 03); see
+ * docs/architecture/06-roadmap-native-lockout-ota-rollouts-ui-telemetry-cli.md §3 for
+ * the open question on remote delivery of rules.
+ */
+export interface TargetingRule {
+  /** Device OS version floor (e.g. '17.0') — matches when the device's OS version is >= this. Omit to match any OS version. */
+  minOsVersion?: string;
+  /** Exact match against PolicyOptions.channel (e.g. 'beta', 'alpha') — this library never infers a channel, you set it. Omit to match any channel. */
+  channel?: string;
+  forceUpdateBelow?: string;
+  rolloutPercentage?: number;
+}
+
 export interface PolicyOptions {
   forceUpdateBelow?: string;
   reminderIntervalMs?: number;
   rolloutPercentage?: number;
+  /** Doc 06 §3 — your own build channel/flavor (e.g. 'beta', 'alpha', 'prod'), matched against TargetingRule.channel. */
+  channel?: string;
+  /** Doc 06 §3 — evaluated in order, first match wins; falls back to forceUpdateBelow/rolloutPercentage above when no rule matches (or none are configured). */
+  rules?: readonly TargetingRule[];
 }
 
 /** Doc 03 §1.1 Security field group — fixed by the app developer, tier-4 only. */
@@ -158,6 +220,8 @@ export interface ResolvedVersionManagerConfig {
     readonly forceUpdateBelow: string | null;
     readonly reminderIntervalMs: number;
     readonly rolloutPercentage: number;
+    readonly channel: string | null;
+    readonly rules: readonly TargetingRule[];
   };
   readonly strictReadiness: boolean;
   readonly remoteConfigUrl: string | null;

@@ -59,6 +59,7 @@ export class VersionRepositoryImpl implements IVersionRepository {
           minimumOsVersion: result.minimumOsVersion,
           fetchedAt: this.clock.now(),
           provider: provider.id,
+          updateChannel: result.updateChannel ?? null,
         };
         await this.cache.set(REMOTE_INFO_CACHE_KEY, info);
         return info;

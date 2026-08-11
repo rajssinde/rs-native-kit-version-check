@@ -14,6 +14,8 @@ import type {
 } from './models/PublicApiOptions';
 import type { UpdateInfo } from './models/UpdateInfo';
 import type { Unsubscribe } from './models/Unsubscribe';
+import type { InAppUpdateFlow } from './ports/IInAppUpdateProvider';
+import type { TriggerInAppUpdateResult } from './usecases/TriggerInAppUpdateUseCase';
 
 /** Public event subscription surface (Prompt 2 §4.2). */
 export interface IVersionManagerEvents {
@@ -43,6 +45,13 @@ export interface IVersionManagerCore extends IVersionManagerEvents {
   checkForUpdates(options?: CheckForUpdatesOptions): Promise<ActionPlan>;
   forceTriggerUpdate(options?: ForceTriggerOptions): Promise<void>;
   resetIgnoredVersions(options?: ResetIgnoredVersionsOptions): Promise<void>;
+  /**
+   * Doc 04 §1 — starts a native in-app update flow (Android Play Core; iOS opens an
+   * itms-apps:// App Store overlay) using the current IPlatformBridge.inAppUpdate, if
+   * any. Resolves 'unsupported' on platforms/bridges without one (e.g. Web) rather than
+   * throwing — callers should fall back to `Linking.openURL(updateInfo.storeUrl)`.
+   */
+  triggerInAppUpdate(flow: InAppUpdateFlow): Promise<TriggerInAppUpdateResult>;
 
   getCurrentState(): LifecycleState;
   getUpdateInfo(): UpdateInfo | null;

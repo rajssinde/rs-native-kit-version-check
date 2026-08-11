@@ -1,5 +1,55 @@
+import { useEffect, useState } from 'react';
 import { Button, StyleSheet, Text, View } from 'react-native';
-import { useVersionManager } from '@rs-native-kit/version-check/ui';
+import {
+  useVersionManager,
+  SoftUpdateDialog,
+} from '@rs-native-kit/version-check/ui';
+import type { UpdateInfo } from '@rs-native-kit/version-check';
+
+const THEME_SHOWCASE = false; // flip on to auto-cycle theme demo (see cli screenshot capture)
+
+const SHOWCASE_THEMES = [
+  'default',
+  'appleStyle',
+  'material3',
+  'minimal',
+] as const;
+const SHOWCASE_INTERVAL_MS = 4000;
+
+const SHOWCASE_UPDATE_INFO: UpdateInfo = {
+  currentVersion: '1.4.0',
+  latestVersion: '1.5.0',
+  storeUrl: 'https://apps.apple.com/app/id284882215',
+  releaseNotes: 'Performance improvements and bug fixes.',
+  isForceUpdate: false,
+  provider: 'apple',
+  fetchedAt: Date.now(),
+  recommendedChannel: 'binary',
+};
+
+function ThemeShowcase() {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % SHOWCASE_THEMES.length);
+    }, SHOWCASE_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  const theme = SHOWCASE_THEMES[index]!;
+
+  console.log(`[ThemeShowcase] now showing: ${theme}`);
+
+  return (
+    <SoftUpdateDialog
+      updateInfo={SHOWCASE_UPDATE_INFO}
+      theme={theme}
+      onUpdatePress={() => {}}
+      onLaterPress={() => {}}
+    />
+  );
+}
 
 export default function App() {
   const { state, isUpdateAvailable, updateInfo, checkForUpdates } =
@@ -29,6 +79,7 @@ export default function App() {
           }}
         />
       </View>
+      {THEME_SHOWCASE ? <ThemeShowcase /> : null}
     </View>
   );
 }

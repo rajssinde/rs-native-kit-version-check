@@ -37,6 +37,7 @@ export type {
   ResolvedVersionManagerConfig,
   RetryOptions,
   StoreLinksOptions,
+  TargetingRule,
   VersionManagerOptions,
 } from './domain/models/VersionManagerOptions';
 export type {

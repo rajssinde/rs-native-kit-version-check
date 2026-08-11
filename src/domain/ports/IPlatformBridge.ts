@@ -1,6 +1,7 @@
 import type { PlatformId } from '../models/PlatformId';
 import type { Unsubscribe } from '../models/Unsubscribe';
 import type { IClock } from './IClock';
+import type { IInAppUpdateProvider } from './IInAppUpdateProvider';
 
 export type { Unsubscribe };
 
@@ -101,4 +102,6 @@ export interface IPlatformBridge {
   readonly clock: IClock;
   readonly lifecycle: IAppLifecycleObserver;
   readonly crypto?: ICryptoProvider;
+  /** Doc 04 §1 — optional: Web has no equivalent capability and genuinely omits this field (unlike `crypto?`, which every current target populates). */
+  readonly inAppUpdate?: IInAppUpdateProvider;
 }

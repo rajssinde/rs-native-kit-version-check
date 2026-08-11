@@ -76,4 +76,35 @@ export function validateOptions(options: VersionManagerOptions): void {
       message: 'options.policy.rolloutPercentage must be between 0 and 100',
     });
   }
+
+  options.policy?.rules?.forEach((rule, index) => {
+    if (rule.forceUpdateBelow !== undefined) {
+      try {
+        parseVersion(rule.forceUpdateBelow);
+      } catch (error) {
+        throw new InvalidConfigException({
+          message: `options.policy.rules[${index}].forceUpdateBelow "${rule.forceUpdateBelow}" is not a valid SemVer string`,
+          cause: error,
+        });
+      }
+    }
+    if (rule.minOsVersion !== undefined) {
+      try {
+        parseVersion(rule.minOsVersion);
+      } catch (error) {
+        throw new InvalidConfigException({
+          message: `options.policy.rules[${index}].minOsVersion "${rule.minOsVersion}" is not a parseable version string`,
+          cause: error,
+        });
+      }
+    }
+    if (
+      rule.rolloutPercentage !== undefined &&
+      (rule.rolloutPercentage < 0 || rule.rolloutPercentage > 100)
+    ) {
+      throw new InvalidConfigException({
+        message: `options.policy.rules[${index}].rolloutPercentage must be between 0 and 100`,
+      });
+    }
+  });
 }

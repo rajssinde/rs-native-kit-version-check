@@ -410,6 +410,10 @@ function mergeConfig(
           tier4.policy.reminderIntervalMs
         ) ?? 259_200_000,
       rolloutPercentage: tier4.policy.rolloutPercentage,
+      // channel/rules are tier-4-only, same as backgroundCheck.*/security.* above — no
+      // remote/local config document field for them yet (doc 06 §3 open question).
+      channel: tier4.policy.channel,
+      rules: tier4.policy.rules,
     },
     strictReadiness: tier4.strictReadiness,
     remoteConfigUrl:

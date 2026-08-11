@@ -9,8 +9,11 @@ import { EnvironmentOverrideSource } from '../data/config/sources/EnvironmentOve
 import { LocalConfigSource } from '../data/config/sources/LocalConfigSource';
 import { RemoteConfigSource } from '../data/config/sources/RemoteConfigSource';
 import { AppleStoreProvider } from '../data/providers/apple/AppleStoreProvider';
+import { AmazonAppstoreProvider } from '../data/providers/amazon/AmazonAppstoreProvider';
 import { CustomApiProvider } from '../data/providers/custom-api/CustomApiProvider';
+import { FirebaseRemoteConfigProvider } from '../data/providers/firebase-remote-config/FirebaseRemoteConfigProvider';
 import { GooglePlayProvider } from '../data/providers/google-play/GooglePlayProvider';
+import { HuaweiAppGalleryProvider } from '../data/providers/huawei/HuaweiAppGalleryProvider';
 import { VersionRepositoryImpl } from '../data/repositories/VersionRepositoryImpl';
 import { DecisionEngine } from '../domain/engines/decision/DecisionEngine';
 import { PolicyEngine } from '../domain/engines/policy/PolicyEngine';
@@ -30,11 +33,13 @@ import { EventBus } from '../shared/eventbus/EventBus';
 
 /**
  * Composition root (Prompt 1 §1.3) — the only file in the codebase that imports both a
- * port and its concrete adapter simultaneously. Only Apple/Google Play/Custom API
- * providers are wired here; Huawei/Amazon/Firebase Remote Config providers exist as
- * independently importable files (Prompt 1 §8) but are intentionally not referenced
- * from this file yet since their implementations are still stubs (see those files'
- * doc comments) — wiring them here would defeat tree-shaking for no behavioral benefit.
+ * port and its concrete adapter simultaneously. See doc 05 for the Huawei/Amazon/
+ * Firebase Remote Config design: Huawei/Amazon are gated to `bridge.platform ===
+ * 'android'` (alternative Android app stores), Firebase Remote Config is platform-
+ * agnostic and registered whenever configured. Huawei additionally requires a
+ * consumer-supplied access token (static or callback) — without one it can't
+ * authenticate against AGC, so it's silently skipped, same as any other unconfigured
+ * store.
  */
 export function createVersionManagerCore(
   options: VersionManagerOptions
@@ -115,6 +120,31 @@ function buildProviders(
         bridge.http,
         config.stores.android.packageName,
         config.stores.android.region
+      )
+    );
+  }
+  if (bridge.platform === 'android' && config.stores.huawei) {
+    const { appId, accessToken, getAccessToken, clientId } =
+      config.stores.huawei;
+    const resolveToken =
+      getAccessToken ?? (accessToken ? () => accessToken : undefined);
+    if (resolveToken) {
+      providers.push(
+        new HuaweiAppGalleryProvider(bridge.http, appId, resolveToken, clientId)
+      );
+    }
+  }
+  if (bridge.platform === 'android' && config.stores.amazon) {
+    providers.push(
+      new AmazonAppstoreProvider(bridge.http, config.stores.amazon.asin)
+    );
+  }
+  if (config.stores.firebaseRemoteConfig) {
+    providers.push(
+      new FirebaseRemoteConfigProvider(
+        bridge.http,
+        bridge.platform,
+        config.stores.firebaseRemoteConfig
       )
     );
   }

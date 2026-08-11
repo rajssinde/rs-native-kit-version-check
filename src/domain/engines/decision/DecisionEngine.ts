@@ -35,6 +35,7 @@ export class DecisionEngine {
       isForceUpdate: actionType === ActionType.FORCE_UPDATE,
       provider: remote.provider,
       fetchedAt: remote.fetchedAt,
+      recommendedChannel: remote.updateChannel ?? 'binary',
     };
 
     return {

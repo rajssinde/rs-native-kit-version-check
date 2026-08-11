@@ -1,4 +1,5 @@
 import type { PlatformId, StoreProviderId } from './PlatformId';
+import type { UpdateChannel } from './UpdateInfo';
 
 export interface RemoteVersionInfo {
   readonly latestVersion: string;
@@ -7,6 +8,8 @@ export interface RemoteVersionInfo {
   readonly minimumOsVersion: string | null;
   readonly fetchedAt: number;
   readonly provider: StoreProviderId;
+  /** Doc 06 §2 — null when the provider/response didn't assert a channel. */
+  readonly updateChannel: UpdateChannel | null;
 }
 
 export interface VersionCheckRequest {

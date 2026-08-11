@@ -215,4 +215,30 @@ class HybridVersionCheck: HybridVersionCheckSpec {
       BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: kVersionCheckBGTaskIdentifier)
     }
   }
+
+  // MARK: - In-app update (doc 04 §1)
+
+  // Apple exposes no "is an update staged" API — always 'unavailable', meaning callers
+  // should fall back to storeUrl rather than treat this as a real availability check.
+  func checkInAppUpdateAvailability() throws -> Promise<String> {
+    return Promise.async {
+      "unavailable"
+    }
+  }
+
+  // No native in-process update flow on iOS; open an itms-apps:// deep link (a modal
+  // App Store overlay) instead. `flow` is Android-only and ignored here.
+  func startInAppUpdate(flow: String, storeUrl: String) throws -> Promise<Void> {
+    return Promise.async {
+      guard let url = URL(string: storeUrl) else {
+        throw RuntimeError("Invalid storeUrl for in-app update: \(storeUrl)")
+      }
+      await UIApplication.shared.open(url)
+    }
+  }
+
+  // Android-only (Play Core Flexible flow) — no-op on iOS.
+  func completeFlexibleUpdate() throws -> Promise<Void> {
+    return Promise.async {}
+  }
 }

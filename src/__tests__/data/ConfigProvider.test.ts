@@ -54,6 +54,25 @@ const defaults: VersionManagerOptions = {
   stores: { custom: { url: 'https://example.com/version.json' } },
 };
 
+const defaultsWithRemote: VersionManagerOptions = {
+  ...defaults,
+  remoteConfigUrl: 'https://example.com/vm-config.json',
+  security: { signatureAlgorithm: 'ed25519', trustedKeyIds: ['k1'] },
+};
+
+function validEnvelope(forceUpdateBelow: string) {
+  return {
+    schemaVersion: '1.0',
+    payload: { alerts: { forceUpdateBelow }, schemaVersion: '1.0' },
+    signature: {
+      algorithm: 'ed25519',
+      keyId: 'k1',
+      value: 'sig',
+      signedAt: new Date(0).toISOString(),
+    },
+  };
+}
+
 describe('ConfigProvider', () => {
   afterEach(() => {
     jest.useRealTimers();
@@ -115,5 +134,41 @@ describe('ConfigProvider', () => {
     unsubscribe();
     await jest.advanceTimersByTimeAsync(1_000);
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the last known-good resolved config when a later remote fetch fails outright (doc 06 §3 rollback)', async () => {
+    let call = 0;
+    const provider = new ConfigProvider(
+      makeDeps({
+        remote: {
+          fetch: async () => {
+            call += 1;
+            if (call === 1) return validEnvelope('2.0.0');
+            throw new Error('network down');
+          },
+        },
+      })
+    );
+
+    const first = await provider.resolve(defaultsWithRemote);
+    expect(first.policy.forceUpdateBelow).toBe('2.0.0');
+
+    const second = await provider.resolve(defaultsWithRemote);
+    expect(second.policy.forceUpdateBelow).toBe('2.0.0');
+  });
+
+  it('reverts to the tier-4 default once the very first remote fetch fails and no cache exists yet', async () => {
+    const provider = new ConfigProvider(
+      makeDeps({
+        remote: {
+          fetch: async () => {
+            throw new Error('network down');
+          },
+        },
+      })
+    );
+
+    const config = await provider.resolve(defaultsWithRemote);
+    expect(config.policy.forceUpdateBelow).toBeNull();
   });
 });

@@ -15,6 +15,8 @@ interface CustomApiResponsePayload {
   storeUrl?: string;
   releaseNotes?: string;
   minimumOsVersion?: string;
+  /** Doc 06 §2 — 'ota' | 'binary'; any other value is ignored (treated as unset) rather than rejected, since this is an informational hint, not a contract field. */
+  updateChannel?: string;
 }
 
 /** Generic enterprise/private-distribution provider (Prompt 12). */
@@ -70,6 +72,10 @@ export class CustomApiProvider implements IStoreProvider {
       storeUrl: payload.storeUrl,
       releaseNotes: payload.releaseNotes ?? null,
       minimumOsVersion: payload.minimumOsVersion ?? null,
+      updateChannel:
+        payload.updateChannel === 'ota' || payload.updateChannel === 'binary'
+          ? payload.updateChannel
+          : undefined,
     };
   }
 }

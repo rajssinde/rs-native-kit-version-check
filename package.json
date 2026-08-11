@@ -4,6 +4,9 @@
   "description": "Force & soft-update prompts for React Native — compares your app's version against the App Store, Google Play, or a custom API and returns a typed action plan. New Architecture (Nitro Modules), iOS/Android/Web.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
+  "bin": {
+    "version-check": "./cli/verify.mjs"
+  },
   "sideEffects": false,
   "exports": {
     ".": {
@@ -21,11 +24,17 @@
       "types": "./lib/typescript/src/backgroundTask.d.ts",
       "default": "./lib/module/backgroundTask.js"
     },
+    "./analytics": {
+      "rs-native-kit-version-check-source": "./src/analytics.ts",
+      "types": "./lib/typescript/src/analytics.d.ts",
+      "default": "./lib/module/analytics.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
     "src",
     "lib",
+    "cli",
     "android",
     "ios",
     "cpp",
@@ -52,6 +61,7 @@
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "test": "jest",
+    "test:cli": "bob build && node cli/verify.test.mjs",
     "release": "release-it --only-version",
     "web": "vite",
     "build:web": "vite build"

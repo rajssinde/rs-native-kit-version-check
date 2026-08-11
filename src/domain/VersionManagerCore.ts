@@ -1,6 +1,9 @@
 import { CheckForUpdatesUseCase } from './usecases/CheckForUpdatesUseCase';
 import { ForceTriggerUpdateUseCase } from './usecases/ForceTriggerUpdateUseCase';
 import { ResetIgnoredVersionsUseCase } from './usecases/ResetIgnoredVersionsUseCase';
+import { TriggerInAppUpdateUseCase } from './usecases/TriggerInAppUpdateUseCase';
+import type { TriggerInAppUpdateResult } from './usecases/TriggerInAppUpdateUseCase';
+import type { InAppUpdateFlow } from './ports/IInAppUpdateProvider';
 import type { DecisionEngine } from './engines/decision/DecisionEngine';
 import type { IUpdatePolicyEngine } from './engines/policy/IUpdatePolicyEngine';
 import type { IVersionComparator } from './engines/semver/IVersionComparator';
@@ -51,6 +54,9 @@ import type { VersionManagerOptions } from './models/VersionManagerOptions';
  */
 const BACKGROUND_CHECK_TASK_ID = 'com.rsnativekit.versioncheck.backgroundCheck';
 
+/** Doc 06 §3 — persisted rollout-bucket key, following the existing `vm_`-prefixed direct-storage convention (see VersionRepositoryImpl's USER_DECISION_STORAGE_KEY). */
+const ROLLOUT_BUCKET_STORAGE_KEY = 'vm_rollout_bucket';
+
 export interface VersionManagerCoreDeps {
   /** Tier-4-only synchronous resolution (doc 02 §1.3 fail-fast) — used to bootstrap
    * before configProvider's full async pipeline (doc 03) resolves, and as the
@@ -81,6 +87,7 @@ export class VersionManagerCore implements IVersionManagerCore {
   private readonly checkUseCase: CheckForUpdatesUseCase;
   private readonly resetUseCase: ResetIgnoredVersionsUseCase;
   private readonly forceUseCase: ForceTriggerUpdateUseCase;
+  private readonly inAppUpdateUseCase: TriggerInAppUpdateUseCase;
 
   private readonly readyPromise: Promise<void>;
   /**
@@ -95,11 +102,15 @@ export class VersionManagerCore implements IVersionManagerCore {
   private lastCheckedAt: number | null = null;
   private inFlightCheck: Promise<ActionPlan> | null = null;
   /**
-   * Non-persisted rollout bucket (0-99), stable for the process lifetime only.
-   * A device-stable bucket derived from a persisted installation id is Prompt 18
-   * scope — this is a documented simplification, not the final design.
+   * Rollout bucket (0-99), persisted via IPlatformBridge.storage (doc 06 §3) so it
+   * survives app restarts instead of re-randomizing every cold start — the same bucket
+   * must keep deciding "in or out of the staged rollout" for the lifetime of the
+   * install, or a user could flip in/out of a rollout across sessions. In-memory cache
+   * here just avoids a storage round-trip on every checkForUpdates() call within one
+   * running instance; the source of truth is storage.
    */
   private rolloutBucket: number | null = null;
+  private rolloutBucketPromise: Promise<number> | null = null;
 
   constructor(deps: VersionManagerCoreDeps) {
     this.deps = deps;
@@ -117,6 +128,9 @@ export class VersionManagerCore implements IVersionManagerCore {
     this.forceUseCase = new ForceTriggerUpdateUseCase(
       deps.repository,
       deps.decisionEngine
+    );
+    this.inAppUpdateUseCase = new TriggerInAppUpdateUseCase(
+      deps.platformBridge.inAppUpdate
     );
 
     this.readyPromise = this.initialize();
@@ -220,10 +234,13 @@ export class VersionManagerCore implements IVersionManagerCore {
   private async runCheck(options: CheckForUpdatesOptions): Promise<ActionPlan> {
     this.tryTransition(LifecycleState.VERSION_CHECKING);
 
-    const [currentVersion, bundleId] = await Promise.all([
-      this.resolveCurrentVersion(),
-      this.deps.platformBridge.appInfo.getBundleId(),
-    ]);
+    const [currentVersion, bundleId, rolloutBucket, osVersion] =
+      await Promise.all([
+        this.resolveCurrentVersion(),
+        this.deps.platformBridge.appInfo.getBundleId(),
+        this.getRolloutBucket(),
+        this.deps.platformBridge.deviceInfo.getOsVersion(),
+      ]);
 
     try {
       const plan = await this.checkUseCase.execute({
@@ -236,7 +253,10 @@ export class VersionManagerCore implements IVersionManagerCore {
           options.timeoutMs ?? this.currentConfig.fallback.requestTimeoutMs,
         forceUpdateBelow: this.currentConfig.policy.forceUpdateBelow,
         rolloutPercentage: this.currentConfig.policy.rolloutPercentage,
-        rolloutBucket: this.getRolloutBucket(),
+        rolloutBucket,
+        osVersion,
+        channel: this.currentConfig.policy.channel,
+        rules: this.currentConfig.policy.rules,
       });
       this.applyPlan(plan, currentVersion);
       return plan;
@@ -344,6 +364,15 @@ export class VersionManagerCore implements IVersionManagerCore {
     await this.resetUseCase.execute(options.versions);
   }
 
+  async triggerInAppUpdate(
+    flow: InAppUpdateFlow
+  ): Promise<TriggerInAppUpdateResult> {
+    return this.inAppUpdateUseCase.execute({
+      flow,
+      storeUrl: this.lastActionPlan?.updateInfo?.storeUrl ?? null,
+    });
+  }
+
   getCurrentState(): LifecycleState {
     return this.stateMachine.current;
   }
@@ -424,11 +453,45 @@ export class VersionManagerCore implements IVersionManagerCore {
     );
   }
 
-  private getRolloutBucket(): number {
-    if (this.rolloutBucket === null) {
-      this.rolloutBucket = Math.floor(Math.random() * 100);
+  private async getRolloutBucket(): Promise<number> {
+    if (this.rolloutBucket !== null) {
+      return this.rolloutBucket;
     }
+    if (!this.rolloutBucketPromise) {
+      this.rolloutBucketPromise = this.loadOrCreateRolloutBucket();
+    }
+    this.rolloutBucket = await this.rolloutBucketPromise;
     return this.rolloutBucket;
+  }
+
+  private async loadOrCreateRolloutBucket(): Promise<number> {
+    let stored: string | null = null;
+    try {
+      stored = await this.deps.platformBridge.storage.get(
+        ROLLOUT_BUCKET_STORAGE_KEY
+      );
+    } catch {
+      // Storage read failures fall through to a fresh (unpersisted) bucket for this
+      // run rather than failing the whole check — same fallback posture as the rest
+      // of runCheck()'s error handling.
+    }
+
+    const parsed = stored === null ? NaN : Number.parseInt(stored, 10);
+    if (Number.isInteger(parsed) && parsed >= 0 && parsed <= 99) {
+      return parsed;
+    }
+
+    const bucket = Math.floor(Math.random() * 100);
+    try {
+      await this.deps.platformBridge.storage.set(
+        ROLLOUT_BUCKET_STORAGE_KEY,
+        String(bucket)
+      );
+    } catch {
+      // Best-effort persistence — an unpersisted bucket for this run is still correct,
+      // it just won't survive a restart until a future write succeeds.
+    }
+    return bucket;
   }
 
   private publishError(

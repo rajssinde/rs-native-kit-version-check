@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   Modal,
   Platform,
@@ -8,6 +9,10 @@ import {
 } from 'react-native';
 import type { ReactElement } from 'react';
 import type { UpdateInfo } from '../../domain/models/UpdateInfo';
+import { useLocaleStrings } from '../i18n/useLocaleStrings';
+import { raisedSurface, insetBorder } from '../theme/styleHelpers';
+import { useThemePalette } from '../theme/useThemePalette';
+import type { ThemeName, ThemePalette } from '../theme/types';
 
 export interface SoftUpdateDialogProps {
   updateInfo: UpdateInfo;
@@ -17,6 +22,17 @@ export interface SoftUpdateDialogProps {
   message?: string;
   updateButtonLabel?: string;
   laterButtonLabel?: string;
+  /** Named style variant, resolved against the OS color scheme. Defaults to 'default' (the original claymorphism look). */
+  theme?: ThemeName;
+  /** Overrides device-locale auto-detection for the default title/message/button labels (doc 06 §4). Has no effect on any prop you pass explicitly. */
+  locale?: string;
+  /**
+   * Called instead of onUpdatePress when updateInfo.recommendedChannel === 'ota' (doc
+   * 06 §2) — wire this to your own OTA client (e.g. `Updates.reloadAsync()`,
+   * `CodePush.sync()`); this library never imports one itself. Omit to always fall back
+   * to onUpdatePress, today's behavior.
+   */
+  onOtaUpdateAvailable?: (info: UpdateInfo) => void | Promise<void>;
 }
 
 /** Dismissible modal dialog (Prompt 1 §5.3; UI copy detail is Prompt 19). */
@@ -24,11 +40,33 @@ export function SoftUpdateDialog({
   updateInfo,
   onUpdatePress,
   onLaterPress,
-  title = 'Update Available',
-  message = `Version ${updateInfo.latestVersion} is available.${updateInfo.releaseNotes ? ` ${updateInfo.releaseNotes}` : ''}`,
-  updateButtonLabel = 'Update',
-  laterButtonLabel = 'Later',
+  title,
+  message,
+  updateButtonLabel,
+  laterButtonLabel,
+  theme = 'default',
+  locale,
+  onOtaUpdateAvailable,
 }: SoftUpdateDialogProps): ReactElement {
+  const palette = useThemePalette(theme);
+  const styles = useMemo(() => createStyles(palette), [palette]);
+  const strings = useLocaleStrings(locale).softUpdate;
+  const effectiveTitle = title ?? strings.title;
+  const effectiveMessage =
+    message ??
+    strings.message(updateInfo.latestVersion, updateInfo.releaseNotes);
+  const effectiveUpdateButtonLabel =
+    updateButtonLabel ?? strings.updateButtonLabel;
+  const effectiveLaterButtonLabel =
+    laterButtonLabel ?? strings.laterButtonLabel;
+  const handleUpdatePress = (): void => {
+    if (updateInfo.recommendedChannel === 'ota' && onOtaUpdateAvailable) {
+      onOtaUpdateAvailable(updateInfo);
+      return;
+    }
+    onUpdatePress();
+  };
+
   return (
     <Modal
       visible
@@ -41,29 +79,33 @@ export function SoftUpdateDialog({
         <View style={styles.card}>
           <View style={styles.handle} />
 
-          <View style={[styles.iconBadge, styles.sageRaised]}>
+          <View style={styles.iconBadge}>
             <Text style={styles.iconGlyph}>✦</Text>
           </View>
 
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.message}>{message}</Text>
+          <Text style={styles.title}>{effectiveTitle}</Text>
+          <Text style={styles.message}>{effectiveMessage}</Text>
 
           <Pressable
             style={({ pressed }) => [
               styles.primaryButton,
-              pressed ? styles.coralPressed : styles.coralRaised,
+              pressed ? styles.primaryButtonPressed : null,
             ]}
-            onPress={onUpdatePress}
+            onPress={handleUpdatePress}
             accessibilityRole="button"
           >
-            <Text style={styles.primaryButtonLabel}>{updateButtonLabel}</Text>
+            <Text style={styles.primaryButtonLabel}>
+              {effectiveUpdateButtonLabel}
+            </Text>
           </Pressable>
           <Pressable
-            style={[styles.secondaryButton, styles.inset]}
+            style={styles.secondaryButton}
             onPress={onLaterPress}
             accessibilityRole="button"
           >
-            <Text style={styles.secondaryButtonLabel}>{laterButtonLabel}</Text>
+            <Text style={styles.secondaryButtonLabel}>
+              {effectiveLaterButtonLabel}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -71,122 +113,95 @@ export function SoftUpdateDialog({
   );
 }
 
-const BG = '#FFEBD3';
-const RECESSED = '#F3DAB9';
-const TEXT = '#4A362B';
-const TEXT_MUTED = '#9C8570';
-const HIGHLIGHT = 'rgba(255,255,255,0.9)';
-const SHADOW = 'rgba(196,150,102,0.45)';
-
-const CORAL = '#FFB6A6';
-const CORAL_PRESSED = '#F29A87';
-const SAGE = '#9BCEC1';
-
-const shadow = (color: string) =>
-  Platform.select({
-    ios: {
-      shadowColor: color,
-      shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: 0.35,
-      shadowRadius: 14,
+function createStyles(palette: ThemePalette) {
+  return StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: palette.backdrop,
+      justifyContent: 'flex-end',
     },
-    default: { elevation: 10 },
+    card: {
+      borderTopLeftRadius: palette.radius.card,
+      borderTopRightRadius: palette.radius.card,
+      paddingHorizontal: 24,
+      paddingTop: 14,
+      paddingBottom: Platform.select({ ios: 34, default: 20 }),
+      alignItems: 'center',
+      ...raisedSurface(palette, palette.surface, palette.cardShadow, {
+        offset: { width: 0, height: -4 },
+        opacity: 0.35,
+        radius: 14,
+        elevation: 10,
+      }),
+    },
+    handle: {
+      width: 40,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: palette.surfaceRecessed,
+      marginBottom: 18,
+    },
+    iconBadge: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+      ...raisedSurface(palette, palette.secondary, palette.secondaryShadow, {
+        offset: { width: 4, height: 4 },
+        opacity: 0.4,
+        radius: 8,
+        elevation: 6,
+      }),
+    },
+    iconGlyph: { fontSize: 24, color: palette.onSecondary },
+    title: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: palette.text,
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    message: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: palette.textMuted,
+      textAlign: 'center',
+      marginBottom: 24,
+    },
+    primaryButton: {
+      width: '100%',
+      paddingVertical: 16,
+      borderRadius: palette.radius.button,
+      alignItems: 'center',
+      marginBottom: 10,
+      ...raisedSurface(palette, palette.primary, palette.primaryShadow, {
+        offset: { width: 4, height: 4 },
+        opacity: 0.4,
+        radius: 8,
+        elevation: 6,
+      }),
+    },
+    primaryButtonPressed: {
+      backgroundColor: palette.primaryPressed,
+    },
+    primaryButtonLabel: {
+      color: palette.onPrimary,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    secondaryButton: {
+      width: '100%',
+      paddingVertical: 13,
+      borderRadius: palette.radius.button,
+      alignItems: 'center',
+      ...insetBorder(palette),
+    },
+    secondaryButtonLabel: {
+      color: palette.textMuted,
+      fontSize: 15,
+      fontWeight: '600',
+    },
   });
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(58,42,30,0.5)',
-    justifyContent: 'flex-end',
-  },
-  inset: {
-    backgroundColor: RECESSED,
-    borderWidth: 1,
-    borderTopColor: SHADOW,
-    borderLeftColor: SHADOW,
-    borderBottomColor: HIGHLIGHT,
-    borderRightColor: HIGHLIGHT,
-  },
-  sageRaised: {
-    backgroundColor: SAGE,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#6ea393',
-        shadowOffset: { width: 4, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-      },
-      default: { elevation: 6 },
-    }),
-  },
-  coralRaised: {
-    backgroundColor: CORAL,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#e08a72',
-        shadowOffset: { width: 4, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-      },
-      default: { elevation: 6 },
-    }),
-  },
-  coralPressed: {
-    backgroundColor: CORAL_PRESSED,
-  },
-  card: {
-    backgroundColor: BG,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 24,
-    paddingTop: 14,
-    paddingBottom: Platform.select({ ios: 34, default: 20 }),
-    alignItems: 'center',
-    ...shadow('#c9a97c'),
-  },
-  handle: {
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: RECESSED,
-    marginBottom: 18,
-  },
-  iconBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  iconGlyph: { fontSize: 24, color: '#1f4a3d' },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: TEXT,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  message: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: TEXT_MUTED,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  primaryButton: {
-    width: '100%',
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  primaryButtonLabel: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
-  secondaryButton: {
-    width: '100%',
-    paddingVertical: 13,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  secondaryButtonLabel: { color: TEXT_MUTED, fontSize: 15, fontWeight: '600' },
-});
+}

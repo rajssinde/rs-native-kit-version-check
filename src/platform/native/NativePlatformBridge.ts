@@ -19,6 +19,12 @@ import type {
   ISecureStorage,
   Unsubscribe,
 } from '../../domain/ports/IPlatformBridge';
+import type {
+  IInAppUpdateProvider,
+  InAppUpdateAvailability,
+  InAppUpdateFlow,
+  InAppUpdateStatus,
+} from '../../domain/ports/IInAppUpdateProvider';
 import NativeVersionCheck from './NativeVersionCheck';
 
 class RnHttpClient implements IHttpClient {
@@ -168,6 +174,35 @@ class RnCryptoProvider implements ICryptoProvider {
   }
 }
 
+const KNOWN_AVAILABILITY: readonly InAppUpdateAvailability[] = [
+  'unavailable',
+  'available',
+  'inProgress',
+];
+
+/**
+ * Doc 04 §1 — Android wraps Play Core's AppUpdateManager; iOS has no in-process update
+ * SDK, so checkAvailability() there always resolves 'unavailable' (see the Nitro spec's
+ * doc comment) and startUpdate() opens an itms-apps:// App Store overlay instead.
+ */
+class RnInAppUpdateProvider implements IInAppUpdateProvider {
+  async checkAvailability(): Promise<InAppUpdateStatus> {
+    const raw = await NativeVersionCheck().checkInAppUpdateAvailability();
+    const availability = (KNOWN_AVAILABILITY as readonly string[]).includes(raw)
+      ? (raw as InAppUpdateAvailability)
+      : 'unavailable';
+    return { availability };
+  }
+
+  async startUpdate(flow: InAppUpdateFlow, storeUrl: string): Promise<void> {
+    await NativeVersionCheck().startInAppUpdate(flow, storeUrl);
+  }
+
+  async completeFlexibleUpdate(): Promise<void> {
+    await NativeVersionCheck().completeFlexibleUpdate();
+  }
+}
+
 export class NativePlatformBridge implements IPlatformBridge {
   readonly platform: PlatformId = Platform.OS === 'ios' ? 'ios' : 'android';
   readonly http: IHttpClient = new RnHttpClient();
@@ -179,4 +214,5 @@ export class NativePlatformBridge implements IPlatformBridge {
   readonly clock = { now: (): number => Date.now() };
   readonly lifecycle: IAppLifecycleObserver = new RnAppLifecycleObserver();
   readonly crypto: ICryptoProvider = new RnCryptoProvider();
+  readonly inAppUpdate: IInAppUpdateProvider = new RnInAppUpdateProvider();
 }

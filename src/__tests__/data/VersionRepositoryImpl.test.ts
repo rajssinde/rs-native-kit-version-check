@@ -97,6 +97,38 @@ describe('VersionRepositoryImpl', () => {
     expect(calls).toBe(1);
   });
 
+  it('maps a provider-asserted updateChannel through, and defaults to null when unset (doc 06 §2)', async () => {
+    const clock = new MockClock(0);
+    const bridge = new MockPlatformBridge({ clock });
+    const cache = new MemoryCacheStore<RemoteVersionInfo>(clock, 0);
+    const otaProvider = new MockStoreProvider({
+      id: 'custom',
+      result: {
+        latestVersion: '2.0.0',
+        storeUrl: 'https://example.com',
+        releaseNotes: null,
+        minimumOsVersion: null,
+        updateChannel: 'ota',
+      },
+    });
+    const repo = new VersionRepositoryImpl(
+      [otaProvider],
+      cache,
+      bridge.storage,
+      clock
+    );
+
+    const result = await repo.getRemoteVersionInfo({
+      currentVersion: '1.0.0',
+      bundleId: 'com.example.app',
+      platform: 'ios',
+      bypassCache: true,
+      timeoutMs: 1000,
+    });
+
+    expect(result.updateChannel).toBe('ota');
+  });
+
   it('persists and retrieves a user decision', async () => {
     const clock = new MockClock(0);
     const bridge = new MockPlatformBridge({ clock });

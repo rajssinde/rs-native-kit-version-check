@@ -1,8 +1,10 @@
 import type { DecisionEngine } from '../engines/decision/DecisionEngine';
 import type { IUpdatePolicyEngine } from '../engines/policy/IUpdatePolicyEngine';
+import { resolveEffectivePolicy } from '../engines/policy/TargetingRuleResolver';
 import type { IVersionComparator } from '../engines/semver/IVersionComparator';
 import type { ActionPlan } from '../models/ActionPlan';
 import type { PlatformId } from '../models/PlatformId';
+import type { TargetingRule } from '../models/VersionManagerOptions';
 import type { IClock } from '../ports/IClock';
 import type { IVersionRepository } from '../ports/IVersionRepository';
 
@@ -23,6 +25,10 @@ export interface CheckForUpdatesInput {
   readonly forceUpdateBelow: string | null;
   readonly rolloutPercentage: number;
   readonly rolloutBucket: number;
+  /** Doc 06 §3 — device OS version, your own build channel, and configure()-time targeting rules, resolved into an effective forceUpdateBelow/rolloutPercentage before PolicyEngine runs. */
+  readonly osVersion: string | null;
+  readonly channel: string | null;
+  readonly rules: readonly TargetingRule[];
 }
 
 export class CheckForUpdatesUseCase {
@@ -39,8 +45,18 @@ export class CheckForUpdatesUseCase {
 
     const currentParsed = this.deps.comparator.parse(input.currentVersion);
     const remoteParsed = this.deps.comparator.parse(remote.latestVersion);
-    const forceUpdateBelowParsed = input.forceUpdateBelow
-      ? this.deps.comparator.parse(input.forceUpdateBelow)
+
+    const effectivePolicy = resolveEffectivePolicy(
+      input.rules,
+      { osVersion: input.osVersion, channel: input.channel },
+      {
+        forceUpdateBelow: input.forceUpdateBelow,
+        rolloutPercentage: input.rolloutPercentage,
+      },
+      this.deps.comparator
+    );
+    const forceUpdateBelowParsed = effectivePolicy.forceUpdateBelow
+      ? this.deps.comparator.parse(effectivePolicy.forceUpdateBelow)
       : null;
     const userDecision = await this.deps.repository.getUserDecision();
 
@@ -50,7 +66,7 @@ export class CheckForUpdatesUseCase {
       forceUpdateBelow: forceUpdateBelowParsed,
       userDecision,
       now: this.deps.clock.now(),
-      rolloutPercentage: input.rolloutPercentage,
+      rolloutPercentage: effectivePolicy.rolloutPercentage,
       rolloutBucket: input.rolloutBucket,
     });
 

@@ -32,7 +32,7 @@ Shipping an update means nothing if half your users are stuck on a version from 
 | | |
 |---|---|
 | 📦 Runtime dependencies | **1** — `react-native-nitro-modules` (the JSI binding layer) |
-| 🏬 Store providers | Apple App Store, Google Play, Custom API (Huawei/Amazon/Firebase planned) |
+| 🏬 Store providers | Apple App Store, Google Play, Custom API, Huawei AppGallery, Amazon Appstore, Firebase Remote Config |
 | ⏱️ Default check cache | 6h TTL, persisted across app restarts |
 | 🔁 Default reminder cadence | Every 3 days after "Later" |
 | 🎯 Staged rollout | 0–100% device-bucketed rollout out of the box |
@@ -46,7 +46,7 @@ Shipping an update means nothing if half your users are stuck on a version from 
 - 🏬 **Multi-store version lookup** — App Store, Google Play, or your own Custom API out of the box.
 - 🧠 **Policy engine** — SemVer-aware force-update floor, reminder throttling, and percentage-based staged rollout.
 - 🔐 **Signed remote config** — optionally hot-load update policy from a URL or bundled JSON, verified with Ed25519/HMAC via native OS crypto (never hand-rolled in JS).
-- ⚛️ **React hooks + prebuilt UI** — `useVersionManager`, `<ForceUpdateScreen />`, `<SoftUpdateDialog />`, `<OptionalUpdateBanner />` — or go headless and build your own.
+- ⚛️ **React hooks + prebuilt UI** — `useVersionManager`, `<ForceUpdateScreen />`, `<SoftUpdateDialog />`, `<OptionalUpdateBanner />` — themeable (`default`/`appleStyle`/`material3`/`minimal`, light & dark) and localized out of the box in 12 languages, or go headless and build your own.
 - 📡 **Event-driven** — subscribe to `stateChanged`, `updateDetected`, `userAction`, and `error` instead of polling.
 - 🌐 **Web-ready** — the same JS API runs under `react-native-web`; no separate SDK.
 - 🪶 **One runtime dependency** — `react-native-nitro-modules` (the JSI binding layer); the entire JS surface above it is hand-written, nothing else pulled in at install time.
@@ -60,6 +60,12 @@ The three prebuilt components from `@rs-native-kit/version-check/ui`, run on-dev
 |---|---|---|
 | ![Force update screen](.github/assets/force-update-screen.png) | ![Soft update dialog](.github/assets/soft-update-dialog.png) | ![Optional update banner](.github/assets/optional-update-banner.png) |
 | Full-screen, non-dismissible lockout | Dismissible bottom-sheet dialog | Low-intrusion floating banner |
+
+Every component also takes a `theme` prop — `<SoftUpdateDialog />` shown here in all 4 (light mode, iOS simulator):
+
+<div align="center">
+<img src=".github/assets/theme-showcase.png" alt="SoftUpdateDialog rendered in the default, appleStyle, material3, and minimal themes, light mode" width="720" />
+</div>
 
 ## Requirements
 
@@ -179,6 +185,33 @@ function App() {
 }
 ```
 
+Each prebuilt component takes an optional `theme` prop — `'default' | 'appleStyle' | 'material3' | 'minimal'` — resolved against the OS color scheme automatically (light/dark), no extra config:
+
+```tsx
+<ForceUpdateScreen updateInfo={updateInfo} onUpdatePress={...} theme="material3" />
+```
+
+Omitting `theme` keeps the original look (`'default'`) exactly as before — this is purely additive.
+
+Default copy (title/message/button labels) is localized out of the box — resolved from the device locale (`Intl.DateTimeFormat().resolvedOptions().locale`, no native call needed), covering `en`, `es`, `fr`, `de`, `it`, `pt`, `ja`, `zh`, `ko`, `hi`, `ar`, `ru`, falling back to English for anything else. Pass `locale` to override auto-detection, or any of `title`/`message`/`updateButtonLabel`/`laterButtonLabel` to override specific copy regardless of locale — both work exactly as before localization existed:
+
+```tsx
+<SoftUpdateDialog updateInfo={updateInfo} onUpdatePress={...} onLaterPress={...} locale="fr" />
+```
+
+This library doesn't flip layout direction for RTL languages (Arabic) — only the text itself is translated.
+
+Each component also takes an optional `onOtaUpdateAvailable`, called instead of `onUpdatePress` when `updateInfo.recommendedChannel === 'ota'` (see [Custom API](#custom-api) above) — wire it to your own OTA client:
+
+```tsx
+<SoftUpdateDialog
+  updateInfo={updateInfo}
+  onUpdatePress={() => Linking.openURL(updateInfo.storeUrl)}
+  onOtaUpdateAvailable={() => Updates.reloadAsync()} // expo-updates, or CodePush.sync()
+  onLaterPress={() => {}}
+/>
+```
+
 ### Events
 
 ```ts
@@ -186,6 +219,20 @@ manager.onUpdateDetected(({ updateInfo, actionPlan }) => { /* ... */ });
 manager.onUserAction(({ action, updateInfo }) => { /* 'update_clicked' | 'later_clicked' | ... */ });
 manager.onStateChanged(({ from, to }) => { /* lifecycle transitions */ });
 manager.onError(({ error, phase }) => { /* 'config' | 'check' | 'policy' | 'presentation' */ });
+```
+
+### Analytics (separate, tree-shakeable entry point)
+
+`@rs-native-kit/version-check/analytics` is a thin fan-out helper over the events above — it never imports an analytics SDK itself, it just forwards every event to a sink function you write against your own already-instantiated client:
+
+```ts
+import { subscribeAnalytics, AnalyticsAdapter } from '@rs-native-kit/version-check/analytics';
+
+subscribeAnalytics(manager, AnalyticsAdapter.combine(
+  (event, payload) => mixpanelInstance.track(event, payload),
+  (event, payload) => analytics().logEvent(event, payload), // @react-native-firebase/analytics
+  (event, payload) => console.log(`[VersionCheck] ${event}`, payload),
+));
 ```
 
 ## Configuration reference
@@ -205,6 +252,11 @@ VersionManager.configure({
     forceUpdateBelow: '2.0.0',       // SemVer floor — anything older is FORCE_UPDATE
     reminderIntervalMs: 259_200_000, // how often to re-nag after "Later" (default 3 days)
     rolloutPercentage: 100,          // staged rollout, 0-100
+    channel: 'prod',                 // your own build channel/flavor — this library never infers it
+    rules: [                         // first-match-wins, layered over the fields above
+      { minOsVersion: '17.0', forceUpdateBelow: '3.0.0' },
+      { channel: 'beta', forceUpdateBelow: '3.1.0-beta.2' },
+    ],
   },
   cache: {
     ttlMs: 21_600_000,               // how long a store lookup is cached (default 6h)
@@ -222,6 +274,12 @@ VersionManager.configure({
 });
 ```
 
+`policy.rules` are evaluated in order and the first fully-matching rule wins — a rule with no `channel` matches any channel, a rule with no `minOsVersion` matches any OS version, and `minOsVersion` matches when the device's OS version is at or above it. No matching rule (or no `rules` at all) falls back to the top-level `forceUpdateBelow`/`rolloutPercentage`. `channel` is entirely your own concept (e.g. a build flavor or `expo-updates` release channel) — pass whatever string you want; this library never infers it.
+
+`rules`/`channel` are `configure()`-time only for now, not yet part of the signed remote-config document schema below.
+
+If a signed remote config fetch fails (network error, invalid signature, malformed document), the SDK automatically falls back to the last successfully-verified remote config rather than reverting to your `configure()` defaults — so a transient outage or a bad publish doesn't regress live devices back to weaker settings. Publishing a corrected/rolled-back document normally is all that's needed to recover; there's no separate "recall" step.
+
 ### Store providers
 
 | Provider | Status |
@@ -229,13 +287,82 @@ VersionManager.configure({
 | Apple App Store | ✅ Implemented |
 | Google Play | ✅ Implemented |
 | Custom API | ✅ Implemented |
-| Huawei AppGallery | 🚧 Planned — throws `UnsupportedStoreException` today |
-| Amazon Appstore | 🚧 Planned — throws `UnsupportedStoreException` today |
-| Firebase Remote Config | 🚧 Planned — throws `UnsupportedStoreException` today |
+| Huawei AppGallery | ✅ Implemented — requires a consumer-supplied AGC access token, see below |
+| Amazon Appstore | ✅ Implemented — best-effort HTML scrape, no official Amazon API, see below |
+| Firebase Remote Config | ✅ Implemented — REST-only, no Firebase SDK dependency, see below |
+
+Multiple providers can be registered at once — `VersionRepositoryImpl` tries them in registration order (platform store → Huawei → Amazon → Firebase Remote Config → Custom) and uses the first one that succeeds, so e.g. a Huawei device without Google Play can fall through past a failed/unregistered Google Play lookup to Huawei/Amazon/Custom.
+
+#### Custom API
+
+Your endpoint's JSON response can optionally assert `"updateChannel": "ota" | "binary"` alongside the required `latestVersion`/`storeUrl` fields:
+
+```json
+{ "latestVersion": "2.1.0", "storeUrl": "https://example.com/app", "updateChannel": "ota" }
+```
+
+This surfaces as `updateInfo.recommendedChannel` (`'ota' | 'binary'`, defaults to `'binary'` when omitted — today's behavior, unchanged). It's a pure signal: this library never verifies it and never imports an OTA client itself — pair it with `onOtaUpdateAvailable` on the prebuilt UI components (see below) to route to your own `Updates.reloadAsync()`/`CodePush.sync()` instead of a store redirect when a release doesn't need a new binary.
+
+#### Huawei AppGallery
+
+Huawei's public AppGallery listing page is a client-rendered SPA with no version data in the raw HTTP response, so this provider calls Huawei's AGC "App Info Query" Open API instead. This library never performs Huawei's OAuth client_id/secret exchange itself — your own backend does that and hands the client a bearer token:
+
+```ts
+stores: {
+  huawei: {
+    appId: '102717837',
+    // either a short-lived static token...
+    accessToken: myToken,
+    // ...or a callback for tokens that expire (preferred):
+    getAccessToken: () => fetchHuaweiTokenFromMyBackend(),
+    clientId: 'my-agc-client-id', // optional
+  },
+},
+```
+
+Without one of `accessToken`/`getAccessToken`, the Huawei provider is not registered at all (silently, same as any other unconfigured store). Only registered on Android.
+
+#### Amazon Appstore
+
+```ts
+stores: {
+  amazon: { asin: 'B0731LX7VR' },
+},
+```
+
+Amazon has no official version-lookup API, and its public listing page does not reliably expose a parseable version field — this is a best-effort HTML scrape, weaker than Google Play's own scrape. A parse failure throws `StoreResponseParseException`, which the sequential-fallback repository already handles by moving on to the next registered provider. If you need reliability, prefer `custom` pointed at your own endpoint. Only registered on Android.
+
+#### Firebase Remote Config
+
+```ts
+stores: {
+  firebaseRemoteConfig: {
+    apiKey: 'AIzaSy...',
+    projectId: '1234567890',       // Firebase project number
+    appId: '1:1234567890:android:abcdef123456',
+    parameterKey: 'latest_version',            // default
+    storeUrlParameterKey: 'update_store_url',  // optional
+    releaseNotesParameterKey: 'release_notes', // optional
+    minimumOsVersionParameterKey: 'min_os_version', // optional
+  },
+},
+```
+
+Fetches Remote Config parameter values over plain REST (Firebase Installations API + Remote Config `:fetch`) — the same calls the native SDK makes internally, with no Firebase SDK/native setup required. This is a reverse-engineered, unofficial contract rather than a documented public API, so treat it with the same "may change without notice" caution as the Google Play/Amazon scrapes. Registered regardless of platform.
 
 ### Remote / signed configuration
 
 On top of the options you hardcode at `configure()`, you can layer a **local bundled JSON** and/or a **remote URL**, both wrapped in a signed envelope (`schemaVersion`, `payload`, `signature`) and verified against `security.trustedKeyIds` before any field is trusted. Precedence is `env overrides > remote > local > configure() defaults`, merged field-by-field, with automatic fallback to the last known-good config if a remote fetch fails.
+
+#### Verifying a config document before you deploy it
+
+```sh
+npx @rs-native-kit/version-check verify --config ./vm-config.json
+npx @rs-native-kit/version-check verify --config ./vm-config.json --public-key <base64-ed25519-public-key>
+npx @rs-native-kit/version-check verify --config ./vm-config.json --hmac-secret <shared-secret>
+```
+
+Checks envelope size, schema shape, and field-level boundaries (SemVer fields, HTTPS URLs, store id shapes — the same checks the app itself runs) against a signed config document, without needing a device or simulator. Signature verification is optional and requires the actual key material as a flag — this CLI has no access to the key your compiled app resolves natively from a `keyId` (doc 03 §3.4), so without `--public-key`/`--hmac-secret` it validates shape only and says so explicitly. Exits non-zero on any failure, so it's CI-friendly (`... && echo ok || exit 1`).
 
 ## Lifecycle
 

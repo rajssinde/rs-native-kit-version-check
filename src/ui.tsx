@@ -17,3 +17,8 @@ export type { OptionalUpdateBannerProps } from './presentation/components/Option
 
 export type { VersionManagerUiState } from './presentation/state/VersionManagerStore';
 export { VersionManagerStore } from './presentation/state/VersionManagerStore';
+
+export type { ThemeName, ThemePalette } from './presentation/theme/types';
+
+export type { LocaleCode, LocaleStrings } from './presentation/i18n/types';
+export { resolveLocaleStrings } from './presentation/i18n/locales';

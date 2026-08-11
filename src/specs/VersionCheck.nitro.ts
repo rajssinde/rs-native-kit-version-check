@@ -56,4 +56,23 @@ export interface VersionCheck extends HybridObject<{
   /** Doc 04 §2 — see the module-level doc comment above for `taskId` semantics per platform. */
   scheduleBackgroundCheck(taskId: string, minIntervalMs: number): Promise<void>;
   cancelBackgroundCheck(taskId: string): Promise<void>;
+
+  /**
+   * Doc 04 §1 — native in-app update integrations. Android wraps Play Core's
+   * AppUpdateManager (Flexible/Immediate flows); iOS has no equivalent in-process API
+   * (Apple exposes no "is an update staged" signal at all), so there this always
+   * resolves 'unavailable' — treat that as "fall back to storeUrl", not as a real
+   * availability check, on iOS specifically.
+   */
+  checkInAppUpdateAvailability(): Promise<string>; // 'unavailable' | 'available' | 'inProgress'
+  /**
+   * `flow` is 'flexible' | 'immediate' (Android only — iOS has no such distinction and
+   * ignores it). `storeUrl` is the current UpdateInfo.storeUrl; Android ignores it too
+   * (Play Core resolves the update for the installed app package on its own) — iOS uses
+   * it to build an `itms-apps://` deep link (a modal App Store overlay instead of fully
+   * backgrounding to the App Store app), since there's no native SDK there.
+   */
+  startInAppUpdate(flow: string, storeUrl: string): Promise<void>;
+  /** Android-only — triggers the install after a Flexible download finishes. No-op on iOS. */
+  completeFlexibleUpdate(): Promise<void>;
 }

@@ -15,6 +15,8 @@ const APP_STORE_ID_PATTERN = /^[0-9]{6,12}$/;
 const ANDROID_PACKAGE_PATTERN = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
 const AMAZON_ASIN_PATTERN = /^[A-Z0-9]{10}$/;
 const HUAWEI_APP_ID_PATTERN = /^[0-9]{6,12}$/;
+const FIREBASE_PROJECT_ID_PATTERN = /^[0-9]+$/;
+const FIREBASE_APP_ID_PATTERN = /^\d+:\d+:(android|ios|web):[a-f0-9]+$/;
 const SCHEMA_VERSION_PATTERN = /^\d+\.\d+$/;
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -210,6 +212,38 @@ export class ConfigDocumentValidator implements IConfigValidator {
         !HTTPS_URL_PATTERN.test(custom.url)
       ) {
         fieldErrors.set('stores.custom.url', 'must use https://');
+      }
+
+      const firebaseRemoteConfig = stores.firebaseRemoteConfig as
+        Record<string, unknown> | undefined;
+      if (isPlainObject(firebaseRemoteConfig)) {
+        if (
+          typeof firebaseRemoteConfig.apiKey === 'string' &&
+          firebaseRemoteConfig.apiKey.length === 0
+        ) {
+          fieldErrors.set(
+            'stores.firebaseRemoteConfig.apiKey',
+            'must not be empty'
+          );
+        }
+        if (
+          typeof firebaseRemoteConfig.projectId === 'string' &&
+          !FIREBASE_PROJECT_ID_PATTERN.test(firebaseRemoteConfig.projectId)
+        ) {
+          fieldErrors.set(
+            'stores.firebaseRemoteConfig.projectId',
+            'must be numeric'
+          );
+        }
+        if (
+          typeof firebaseRemoteConfig.appId === 'string' &&
+          !FIREBASE_APP_ID_PATTERN.test(firebaseRemoteConfig.appId)
+        ) {
+          fieldErrors.set(
+            'stores.firebaseRemoteConfig.appId',
+            'has invalid shape'
+          );
+        }
       }
     }
 
