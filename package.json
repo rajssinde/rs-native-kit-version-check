@@ -1,6 +1,6 @@
 {
   "name": "@rs-native-kit/version-check",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Force & soft-update prompts for React Native — compares your app's version against the App Store, Google Play, or a custom API and returns a typed action plan. New Architecture (Nitro Modules), iOS/Android/Web.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
