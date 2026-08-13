@@ -2,6 +2,10 @@
 
 <img src=".github/assets/banner.svg" alt="@rs-native-kit/version-check — force & soft-update orchestration for React Native" width="100%" />
 
+# React Native Force Update & Soft Update Checker
+
+**`@rs-native-kit/version-check`** is a React Native library that checks the App Store, Google Play, or a custom API for the latest app version and tells you whether to force update, soft update, or remind the user — with prebuilt UI, staged rollout, and a signed remote-config pipeline.
+
 [![npm version](https://img.shields.io/npm/v/@rs-native-kit/version-check.svg?color=cb3837&logo=npm&logoColor=white)](https://www.npmjs.com/package/@rs-native-kit/version-check)
 [![npm downloads](https://img.shields.io/npm/dm/@rs-native-kit/version-check.svg?color=cb3837&logo=npm&logoColor=white)](https://www.npmjs.com/package/@rs-native-kit/version-check)
 [![CI](https://github.com/rajssinde/rs-native-kit-version-check/actions/workflows/ci.yml/badge.svg)](https://github.com/rajssinde/rs-native-kit-version-check/actions/workflows/ci.yml)
@@ -21,7 +25,7 @@
 
 ## Why this exists
 
-Shipping an update means nothing if half your users are stuck on a version from three releases ago. **`version-check`** answers three questions for you on every app launch:
+Every React Native app eventually needs a **force update**, a **soft update**, or a way to **check the current app version** against what's live on the App Store or Google Play. Shipping a release means nothing if half your users are stuck on a version from three launches ago. **`version-check`** answers three questions for you on every app launch:
 
 1. **Is the user out of date?** — compares the running app version against what your store (or your own API) says is current.
 2. **How out of date, and does it matter?** — runs that comparison through a policy engine (hard floor, reminder cadence, staged rollout %) to decide what actually needs to happen.
